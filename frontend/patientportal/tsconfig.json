@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+      "baseUrl": ".",  // Ensure baseUrl is set to your project root
+      "paths": {
+        "@/*": ["./src/*"]  // Map @ to the src directory
+      }
+    },
+    "include": [
+      "./src/**/*"
+    ]
+  }
+  
