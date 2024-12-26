@@ -16,8 +16,8 @@ jobs:
       # Install dependencies and build the app
       - name: Save environment variables
         run:
-          echo "VITE_PUBLIC_WS_URL=${{ secrets.VITE_PUBLIC_WS_URL }}" >> environment/.env.production &&
-          echo "VITE_PUBLIC_API_URL=${{ secrets.VITE_PUBLIC_API_URL }}" >> environment/.env.production
+          echo "VITE_PUBLIC_WS_URL=${{ secrets.VITE_PUBLIC_WS_URL }}" >> .env.production &&
+          echo "VITE_PUBLIC_API_URL=${{ secrets.VITE_PUBLIC_API_URL }}" >> .env.production
 
       - name: Build the app
         run: npm ci --force && npm run build || true
