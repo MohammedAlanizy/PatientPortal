@@ -9,7 +9,7 @@ export const ProtectedRoute = ({ allowedRoles }) => {
   }
 
   if (!allowedRoles.includes(userRole)) {
-    return <Navigate to="/unauthorized" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;
