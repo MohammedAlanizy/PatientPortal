@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "frontend/patientportal/build",
+    "public": "frontend/patientportal/dist",
     "ignore": [
       "firebase.json",
       "**/.*",
