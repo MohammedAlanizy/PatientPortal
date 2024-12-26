@@ -8,6 +8,8 @@ ENV PYTHONUNBUFFERED=1
 # Set the working directory inside the container
 WORKDIR /app
 
+RUN mkdir -p /data && chmod 777 /data
+
 # Copy the requirements file to the container
 COPY requirements.txt /app/
 
