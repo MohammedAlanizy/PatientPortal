@@ -14,7 +14,8 @@ primary_region = 'bom'
   auto_stop_machines = false
   auto_start_machines = true
   processes = ['app']
-  
+
+
 [[services]]
   internal_port = 8080
   protocol = "tcp"

@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./default.db"
     
+
+    # Frontend URL
+    FRONTEND_URL: str = "http://localhost:3000"
+    
     # JWT
     SECRET_KEY: str
     ALGORITHM: str = "HS256"

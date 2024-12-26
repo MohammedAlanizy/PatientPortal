@@ -5,7 +5,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  
+  withCredentials: false // false for cross-origin requests without credentials
 });
 
 api.interceptors.request.use((config) => {

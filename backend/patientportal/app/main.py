@@ -8,35 +8,36 @@ from db.session import engine
 from core.exceptions import (
     global_exception_handler,
     validation_exception_handler
-)  # Import the exception handlers
+)
 
 def create_application() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
     )
-
-    # Set all CORS enabled origins
+    
+    # CORS configuration
+    origins = [
+        settings.FRONTEND_URL,
+    ]
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["Content-Type", "Authorization", "Accept"],
+        expose_headers=["Content-Type"]
     )
-
-    # Include routers
+    
     app.include_router(api_router, prefix=settings.API_V1_STR)
-
-    # Register exception handlers
     app.add_exception_handler(Exception, global_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
-
+    
     return app
 
 app = create_application()
 
 @app.on_event("startup")
 async def startup_event():
-    # Create database tables
     Base.metadata.create_all(bind=engine)
