@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from crud.base import CRUDBase
 from models.request import Request
 from schemas.request import RequestCreate, RequestUpdate
+from datetime import timedelta, datetime
 
 class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
     def create(
@@ -61,12 +62,15 @@ class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
     ) -> Dict[str, Any]:
         query = db.query(self.model)
         if filters:
-            if 'status' in filters:
-                query = query.filter(Request.status == filters['status'])
-            if 'start_date' in filters:
-                query = query.filter(Request.created_at >= filters['start_date'])
-            if 'end_date' in filters:
-                query = query.filter(Request.created_at <= filters['end_date'])
+            for attr, value in filters.items():
+                if attr == 'start_date':
+                    start_date = datetime.strptime(value, "%Y-%m-%d")
+                    query = query.filter(self.model.created_at >= start_date)
+                elif attr == 'end_date':
+                    end_date = datetime.strptime(value, "%Y-%m-%d") + timedelta(days=1)
+                    query = query.filter(self.model.created_at < end_date)
+                else:
+                    query = query.filter(getattr(self.model, attr) == value)
 
         # Order by created_at in descending order (newest first)
         query = query.order_by(Request.updated_at.desc())

@@ -179,7 +179,7 @@ const Dashboard = () => {
   const handleSaveRequest = async (requestId, updates) => {
     try {
       await updateRequest(requestId, updates);
-      useRequests.setState(state => {return {...state, totalPending: state.totalPending - 1, totalCompleted: state.totalCompleted + 1}});
+
       showNotification('Request updated successfully', 'success');
     } catch (err) {
       showNotification(err.response?.data?.detail || 'Failed to update request', 'error');
