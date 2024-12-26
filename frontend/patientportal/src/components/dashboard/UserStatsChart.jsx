@@ -135,17 +135,23 @@ const UserStatsChart = ({ isOpen, onClose, fetchUserStats, useAssignees }) => {
               
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 pr-8">{user.full_name}</h3>
               
-              <div className="mt-2">
-                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${(user.completed / topPerformer.completed) * 100}%` }}
-                  />
+              <div className="mt-2 overflow-hidden">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex-1">
+                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${Math.min((user.completed / topPerformer.completed) * 100, 100)}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <span className="font-semibold text-blue-600 dark:text-blue-400 min-w-[3rem] text-right">
+                    {user.completed}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Completed</span>
-                  <span className="font-semibold text-blue-600 dark:text-blue-400">{user.completed}</span>
-                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Completed</span>
               </div>
             </div>
           ))}
