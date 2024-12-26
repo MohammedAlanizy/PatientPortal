@@ -34,6 +34,7 @@ primary_region = 'bom'
   [[services.tcp_checks]]
     interval = 10000
     timeout = 2000
+
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
