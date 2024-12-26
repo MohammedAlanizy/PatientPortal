@@ -13,7 +13,8 @@
       }
     ],
     "predeploy": [
-      "npm run build || true"
+      "cd frontend/patientportal && npm install",
+      "cd frontend/patientportal && npm run build || true"
     ]
   }
   
