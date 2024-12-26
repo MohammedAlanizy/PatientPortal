@@ -9,7 +9,7 @@ import HistoryView from './components/dashboard/HistoryView';
 import ManageUsers from './components/admin/ManageUsers';
 import { ProtectedRoute } from './components/layout/outlet';
 import { AnimatePresence, motion } from 'framer-motion';
-
+import { NotificationProvider } from '@/contexts/NotificationContext';
 const AppLayout = ({ children, showNav }) => {
   const { isDarkMode } = useDarkMode();
   
@@ -45,13 +45,12 @@ const AnimatedRoutes = () => {
         <Route path="/login" element={<SignInPage />} />
         
         {/* Protected Routes for Inserting Role */}
-        <Route element={<ProtectedRoute allowedRoles={['insertron', 'verifier', 'admin']} />}>
+        <Route element={<ProtectedRoute allowedRoles={['inserter', 'verifier', 'admin']} />}>
           <Route path="/form" element={<RequestForm />} />
         </Route>
-
         {/* Protected Routes for Verifier Role */}
         <Route element={<ProtectedRoute allowedRoles={['verifier', 'admin']} />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard userRole={localStorage.getItem("role")} />} />
           <Route path="/history" element={<HistoryView />} />
         </Route>
 
@@ -68,9 +67,11 @@ const AnimatedRoutes = () => {
 
 const App = () => {
   return (
+    <NotificationProvider>
     <BrowserRouter>
         <AnimatedRoutes />
     </BrowserRouter>
+    </NotificationProvider>
   );
 };
 

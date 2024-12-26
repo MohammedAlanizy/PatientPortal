@@ -18,16 +18,16 @@ const Navigation = () => {
   const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   // You would typically get this from your auth context/state
-  const userRole = localStorage.getItem('userRole') || 'checking';
+  const userRole = localStorage.getItem('role') || 'checking';
 
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
     navigate('/login');
   };
 
   const navItems = {
-    insertron: [
+    inserter: [
       {
         to: '/form',
         icon: UserPlus,
