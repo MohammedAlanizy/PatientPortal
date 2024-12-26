@@ -14,7 +14,7 @@ primary_region = 'bom'
   auto_stop_machines = false
   auto_start_machines = true
   processes = ['app']
-
+  
 
 [[vm]]
   memory = '1gb'

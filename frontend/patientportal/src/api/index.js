@@ -7,7 +7,7 @@ const api = axios.create({
     'Accept': 'application/json',
     'Upgrade-Insecure-Requests': '1' 
   },
-  withCredentials: true // false for cross-origin requests without credentials
+  withCredentials: false // false for cross-origin requests without credentials
 });
 
 api.interceptors.request.use((config) => {
