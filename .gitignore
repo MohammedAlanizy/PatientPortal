@@ -29,8 +29,6 @@ __pycache__/
 # Database
 /backend/patientportal/app/medical_requests.db
 
-# Public assets
-/frontend/patientportal/public/
 
 # Temporary files
 tmp/
