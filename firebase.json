@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "frontend/patientportal/public",
+    "public": "frontend/patientportal/build",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -11,6 +11,10 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "predeploy": [
+      "npm run build || true"
     ]
   }
+  
 }
