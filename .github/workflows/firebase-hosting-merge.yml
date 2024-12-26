@@ -21,7 +21,7 @@ jobs:
           echo "VITE_PUBLIC_API_URL=${{ secrets.VITE_PUBLIC_API_URL }}" >> .env.production
 
       - name: Build the app
-        run: npm ci --force && npm run build || true
+        run: cd frontend/patientportal && npm ci --force && npm run build || true
 
       # Deploy to Firebase Hosting
       - uses: FirebaseExtended/action-hosting-deploy@v0

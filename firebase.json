@@ -13,8 +13,7 @@
       }
     ],
     "predeploy": [
-      "cd frontend/patientportal && npm install --legacy-peer-deps",
-      "cd frontend/patientportal && npm run build || true"
+      "cd frontend/patientportal && npm install --legacy-peer-deps"
     ]
   }
   
