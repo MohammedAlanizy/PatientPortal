@@ -49,7 +49,7 @@ def read_assignees(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([Role.ADMIN]))
+    current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
     assignees = crud_assignee.get_multi(db, skip=skip, limit=limit)
     return assignees

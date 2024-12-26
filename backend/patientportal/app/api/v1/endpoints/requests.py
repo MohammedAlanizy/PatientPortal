@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get("/stats", response_model=RequestStats)
-async def get_request_stats(
+def get_request_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
