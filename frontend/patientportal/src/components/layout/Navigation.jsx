@@ -13,11 +13,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { cn } from '@/lib/utils';
+import DualLogo from '@/components/layout/DualLogo';
 
 const Navigation = () => {
   const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  // You would typically get this from your auth context/state
   const userRole = localStorage.getItem('role') || 'checking';
 
   const handleLogout = () => {
@@ -86,16 +86,7 @@ const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              <img
-                src="/logo.png"
-                alt="Ministry of Health"
-                className="h-10 w-auto"
-              />
-            </motion.div>
+            <DualLogo size="default" />
 
             <div className="flex items-center space-x-1">
               {availableNavItems.map(({ to, icon: Icon, label }) => (

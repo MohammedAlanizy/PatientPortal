@@ -9,6 +9,7 @@ import { Lock, User, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import DualLogo from '@/components/layout/DualLogo';
 
 const roleRedirectMap = {
   admin: '/dashboard',
@@ -33,7 +34,6 @@ const SignInPage = () => {
       const targetPath = location.state?.from || roleRedirectMap[response.role] || '/dashboard';
       navigate(targetPath, { replace: true });
     } catch (error) {
-      // Error is handled by useAuth store
       console.error(error);
     }
   };
@@ -67,11 +67,7 @@ const SignInPage = () => {
       <div className="w-full max-w-md">
         <motion.div className="mb-6 text-center">
           <div className="relative flex justify-center items-center p-6">
-            <img
-              src="/logo.png"
-              alt="Ministry of Health"
-              className="w-40 h-auto drop-shadow-xl"
-            />
+            <DualLogo size="large" />
           </div>
         </motion.div>
 

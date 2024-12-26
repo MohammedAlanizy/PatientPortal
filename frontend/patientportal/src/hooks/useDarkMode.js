@@ -43,7 +43,14 @@ export const useDarkMode = () => {
   }, [isDarkMode]);
 
   const toggleDarkMode = () => {
-    setIsDarkMode(prev => !prev);
+    setIsDarkMode(prev => {
+        if (prev){
+            // refrehs the page as its a bug in tailwindcss
+            window.location.reload();
+        }
+        return !prev;
+  });
+    
   };
 
   return { isDarkMode, toggleDarkMode };
