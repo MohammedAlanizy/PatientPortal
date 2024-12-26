@@ -135,7 +135,12 @@ const HistoryView = () => {
       }),
     });
   };
-  
+
+  // we will call handleRefresh when the component loads to fetch the initial data
+  useEffect(() => {
+    handleRefresh();
+  }, []);
+
   const handleRefresh = () => {
     setSkip(0);
     const dateRange = selectedDate === 'custom'
