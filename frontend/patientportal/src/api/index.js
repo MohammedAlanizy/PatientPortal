@@ -4,8 +4,10 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Upgrade-Insecure-Requests': '1' 
   },
-  withCredentials: false // false for cross-origin requests without credentials
+  withCredentials: true // false for cross-origin requests without credentials
 });
 
 api.interceptors.request.use((config) => {
