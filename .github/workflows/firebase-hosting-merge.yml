@@ -16,6 +16,7 @@ jobs:
       # Install dependencies and build the app
       - name: Save environment variables
         run:
+          cd frontend/patientportal && 
           echo "VITE_PUBLIC_WS_URL=${{ secrets.VITE_PUBLIC_WS_URL }}" >> .env.production &&
           echo "VITE_PUBLIC_API_URL=${{ secrets.VITE_PUBLIC_API_URL }}" >> .env.production
 
