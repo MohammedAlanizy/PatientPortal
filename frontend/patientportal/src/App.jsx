@@ -58,6 +58,7 @@ const AnimatedRoutes = () => {
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route path="/manage" element={<ManageUsers />} />
         </Route>
+        <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
         </motion.div>
       </AnimatePresence>
