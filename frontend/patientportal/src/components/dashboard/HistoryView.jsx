@@ -202,7 +202,9 @@ const HistoryView = () => {
   };
 
   const filteredRequests = requests?.filter(request => 
-    request.full_name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    (request.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    String(request.national_id).includes(searchTerm) ||
+    String(request.medical_number || '').includes(searchTerm)) &&
     (selectedStatus === 'all' || request.status === selectedStatus)
   );
 
