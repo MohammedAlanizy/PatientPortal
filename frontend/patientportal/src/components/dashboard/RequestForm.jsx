@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useRequests } from '@/hooks/useRequests';
 
-const FormField = ({ labelEn, labelAr, id, icon: Icon, placeholder, value, onChange, required }) => (
+const FormField = ({ labelEn, labelAr, id, icon: Icon, placeholder, value, onChange, required, maxLength }) => (
   <motion.div 
     whileHover={{ scale: 1.01 }} 
     className="space-y-8"
@@ -29,6 +29,7 @@ const FormField = ({ labelEn, labelAr, id, icon: Icon, placeholder, value, onCha
       value={value}
       onChange={onChange}
       required={required}
+      maxLength={maxLength} 
       className="bg-background border-input text-center"
     />
   </motion.div>
@@ -123,7 +124,7 @@ const RequestForm = ({ isPublic }) => {
             />
             
             <FormField 
-              labelEn="National ID"
+              labelEn="National / Iqama ID"
               labelAr="رقم الهوية الوطنية / الإقامة"
               id="national_id"
               icon={CreditCard}
