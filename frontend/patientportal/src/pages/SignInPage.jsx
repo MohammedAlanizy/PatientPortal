@@ -127,8 +127,6 @@ const SignInPage = () => {
               Developed and designed by
             </span>
             <a 
-              href="https://github.com/karimyah" 
-              target="_blank" 
               rel="noopener noreferrer" 
               className="text-sm font-medium text-foreground hover:text-primary transition-colors"
             >

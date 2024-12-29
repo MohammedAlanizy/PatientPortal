@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, User, CreditCard, Folder, Send, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,9 +40,16 @@ const RequestForm = ({ isPublic }) => {
     national_id: '',
     medical_number: '',
   });
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const { showNotification } = useNotification();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createRequest } = useRequests();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsAuthorized(!token);
+  }, []);
+
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     let formattedValue = value;
@@ -83,8 +90,6 @@ const RequestForm = ({ isPublic }) => {
       });
       
       showNotification("Request submitted successfully. / تم تقديم الطلب بنجاح", 'success');
-
-      
     } catch (error) {
       console.error('Submission error:', error);
       showNotification(
@@ -95,67 +100,92 @@ const RequestForm = ({ isPublic }) => {
       setIsSubmitting(false);
     }
   };
+
   return (
-    <Card className="w-full shadow-lg ">
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <FormField 
-            labelEn="Full Name"
-            labelAr="الاسم الكامل"
-            id="full_name"
-            icon={User}
-            placeholder="أدخل الاسم الكامل"
-            value={formData.full_name}
-            onChange={handleInputChange}
-            required
-          />
-          
-          <FormField 
-            labelEn="National ID"
-            labelAr="رقم الهوية الوطنية"
-            id="national_id"
-            icon={CreditCard}
-            placeholder="أدخل رقم الهوية"
-            value={formData.national_id}
-            onChange={handleInputChange}
-            required
-          />
-          
-          <FormField 
-            labelEn="Medical File Number"
-            labelAr="رقم الملف الطبي"
-            id="medical_number"
-            icon={Folder}
-            placeholder=" أدخل رقم الملف الطبي"
-            value={formData.medical_number}
-            onChange={handleInputChange}
-          />
-          
-          <motion.div 
-            whileHover={{ scale: isSubmitting ? 1 : 1.02 }} 
-            whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-          >
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-2 py-6 text-lg"
-              disabled={isSubmitting}
+    <div className="flex flex-col min-h-full">
+      <Card className="w-full shadow-lg flex-1">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <FormField 
+              labelEn="Full Name"
+              labelAr="الاسم الكامل"
+              id="full_name"
+              icon={User}
+              placeholder="أدخل الاسم الكامل"
+              value={formData.full_name}
+              onChange={handleInputChange}
+              required
+            />
+            
+            <FormField 
+              labelEn="National ID"
+              labelAr="رقم الهوية الوطنية"
+              id="national_id"
+              icon={CreditCard}
+              placeholder="أدخل رقم الهوية"
+              value={formData.national_id}
+              onChange={handleInputChange}
+              required
+            />
+            
+            <FormField 
+              labelEn="Medical File Number"
+              labelAr="رقم الملف الطبي"
+              id="medical_number"
+              icon={Folder}
+              placeholder=" أدخل رقم الملف الطبي"
+              value={formData.medical_number}
+              onChange={handleInputChange}
+            />
+            
+            <motion.div 
+              whileHover={{ scale: isSubmitting ? 1 : 1.02 }} 
+              whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Processing... / جاري المعالجة...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="h-5 w-5" />
-                  <span>Submit Request / تقديم الطلب</span>
-                </>
-              )}
-            </Button>
+              <Button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-2 py-6 text-lg"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Processing... / جاري المعالجة...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-5 w-5" />
+                    <span>Submit Request / تقديم الطلب</span>
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {isAuthorized && (
+        <footer className="w-full mt-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-center space-x-2 py-4 border-t border-border/40"
+          >
+            <User className="h-4 w-4 text-muted-foreground/60" />
+            <span className="text-sm text-muted-foreground/60">
+              Developed and designed by
+            </span>
+            <a 
+              rel="noopener noreferrer" 
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            >
+              Karim Yahia Alanizy
+            </a>
           </motion.div>
-        </form>
-      </CardContent>
-    </Card>
+        </footer>
+      )}
+    </div>
   );
 };
 
