@@ -424,7 +424,7 @@ const RequestCard = ({ request }) => {
                         <div className="flex items-center space-x-2">
                           <Hash className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm font-medium">ID:</span>
-                          <span className="text-sm">{request.id}</span>
+                          <span className="text-sm">{request.national_id}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
