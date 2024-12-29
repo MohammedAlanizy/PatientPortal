@@ -69,6 +69,15 @@ const RequestForm = ({ isPublic }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.full_name || !formData.national_id) {
+      showNotification("All fields are required. / جميع الحقول مطلوبة", "error");
+      return;
+    }
+  
+    if (formData.national_id.length !== 10) {
+      showNotification(
+        "National/Iqama ID must be exactly 10 digits.  يجب أن يكون رقم الهوية الوطنية / الإقامة 10 أرقام بالضبط",
+        "error"
+      );
       return;
     }
 
