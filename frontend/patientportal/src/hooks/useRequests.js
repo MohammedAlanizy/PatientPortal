@@ -65,7 +65,7 @@ export const useRequests = create((set, get) => ({
           req.id === id ? response.data : req
         ),
         totalCompleted: state.totalCompleted + 1,
-        totalPending: state.totalPending - 1,
+        totalPending: state.totalPending <= 0 ? 0 : state.totalPending - 1,
         isLoading: false
       }));
       return response.data;

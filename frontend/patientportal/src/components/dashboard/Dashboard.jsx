@@ -196,8 +196,6 @@ const Dashboard = () => {
       
       return {
         ...state,
-        totalPending: state.totalPending - 1,
-        totalCompleted: state.totalCompleted + 1,
         requests: statusFilter === 'pending' && updatedRequest.status !== 'pending'
           ? newRequests.filter(req => req.id !== updatedRequest.id)
           : newRequests

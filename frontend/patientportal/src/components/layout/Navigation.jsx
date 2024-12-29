@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { cn } from '@/lib/utils';
 import DualLogo from '@/components/layout/DualLogo';
-
+import UsernameDisplay from '@/components/layout/UsernameDisplay';
 const Navigation = () => {
   const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -109,7 +109,8 @@ const Navigation = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
+            <UsernameDisplay username={localStorage.getItem('username') || 'User'} />
             <Button
               variant="ghost"
               size="icon"

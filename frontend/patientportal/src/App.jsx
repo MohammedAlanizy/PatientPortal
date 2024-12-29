@@ -11,28 +11,24 @@ import { ProtectedRoute } from './components/layout/outlet';
 import { AnimatePresence, motion } from 'framer-motion';
 import CreateRequestPage from '@/pages/CreateRequestPage';
 import { NotificationProvider } from '@/contexts/NotificationContext';
-import FormPage  from '@/pages/FormPage';
+import FormPage from '@/pages/FormPage';
+
 const AppLayout = ({ children, showNav }) => {
   const { isDarkMode } = useDarkMode();
-  
   return (
-    <div className={`min-h-screen `}>
-      <div className="bg-background text-foreground min-h-screen">
-        {showNav && <Navigation />}
-        <main className="container mx-auto px-4 py-8">
-          {children}
-        </main>
-      </div>
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
+      {showNav && <Navigation />}
+      <main className="flex-1 pt-16 pl-4 pr-4 md:pl-16 md:pr-16"> 
+        {children}
+      </main>
     </div>
   );
 };
 
-
-
 const AnimatedRoutes = () => {
   const location = useLocation();
   const showNav = (location.pathname !== '/login' && location.pathname !== '/create-request');
-
+  
   return (
     <AppLayout showNav={showNav}>
       <AnimatePresence mode="wait">
@@ -42,27 +38,23 @@ const AnimatedRoutes = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
+          className="h-full"
         >
-      <Routes location={location}>
-        <Route path="/create-request" element={<CreateRequestPage />} />
-        <Route path="/login" element={<SignInPage />} />
-        
-        {/* Protected Routes for Inserting Role */}
-        <Route element={<ProtectedRoute allowedRoles={['inserter', 'verifier', 'admin']} />}>
-          <Route path="/form" element={<FormPage />} />
-        </Route>
-        {/* Protected Routes for Verifier Role */}
-        <Route element={<ProtectedRoute allowedRoles={['verifier', 'admin']} />}>
-          <Route path="/dashboard" element={<Dashboard userRole={localStorage.getItem("role")} />} />
-          <Route path="/history" element={<HistoryView />} />
-        </Route>
-
-        {/* Protected Routes for Admin Role */}
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-          <Route path="/manage" element={<ManageUsers />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/dashboard" />} />
-      </Routes>
+          <Routes location={location}>
+            <Route path="/create-request" element={<CreateRequestPage />} />
+            <Route path="/login" element={<SignInPage />} />
+            <Route element={<ProtectedRoute allowedRoles={['inserter', 'verifier', 'admin']} />}>
+              <Route path="/form" element={<FormPage />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['verifier', 'admin']} />}>
+              <Route path="/dashboard" element={<Dashboard userRole={localStorage.getItem("role")} />} />
+              <Route path="/history" element={<HistoryView />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+              <Route path="/manage" element={<ManageUsers />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/dashboard" />} />
+          </Routes>
         </motion.div>
       </AnimatePresence>
     </AppLayout>
@@ -72,9 +64,9 @@ const AnimatedRoutes = () => {
 const App = () => {
   return (
     <NotificationProvider>
-    <BrowserRouter>
+      <BrowserRouter>
         <AnimatedRoutes />
-    </BrowserRouter>
+      </BrowserRouter>
     </NotificationProvider>
   );
 };

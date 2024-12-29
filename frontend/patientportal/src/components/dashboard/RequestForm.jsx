@@ -104,7 +104,7 @@ const RequestForm = ({ isPublic }) => {
             labelAr="الاسم الكامل"
             id="full_name"
             icon={User}
-            placeholder="Enter full name / أدخل الاسم الكامل"
+            placeholder="أدخل الاسم الكامل"
             value={formData.full_name}
             onChange={handleInputChange}
             required
@@ -115,7 +115,7 @@ const RequestForm = ({ isPublic }) => {
             labelAr="رقم الهوية الوطنية"
             id="national_id"
             icon={CreditCard}
-            placeholder="Enter national ID / أدخل رقم الهوية"
+            placeholder="أدخل رقم الهوية"
             value={formData.national_id}
             onChange={handleInputChange}
             required
@@ -126,7 +126,7 @@ const RequestForm = ({ isPublic }) => {
             labelAr="رقم الملف الطبي"
             id="medical_number"
             icon={Folder}
-            placeholder="Enter medical file number / أدخل رقم الملف الطبي"
+            placeholder=" أدخل رقم الملف الطبي"
             value={formData.medical_number}
             onChange={handleInputChange}
           />
