@@ -37,27 +37,27 @@ const UserStatsChart = ({ isOpen, onClose, fetchUserStats, useAssignees }) => {
     data.reduce((sum, user) => sum + user.completed, 0)
   , [data]);
 
-  const topPerformer = React.useMemo(() => 
-    data[0]
-  , [data]);
+  const topPerformer = React.useMemo(() => {
+    if (!data.length) return null;
+    return data.reduce((top, current) => 
+      current.completed > top.completed ? current : top
+    , data[0]);
+  }, [data]);
 
-  if (isLoading) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl">
-          <div className="min-h-[600px] flex flex-col items-center justify-center gap-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
-              <div className="relative bg-blue-500 p-4 rounded-xl">
-                <RefreshCw className="h-8 w-8 text-white animate-spin" />
-              </div>
-            </div>
-            <p className="text-lg font-medium text-muted-foreground">Fetching latest statistics...</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <Dialog open={isOpen} onOpenChange={onClose}>
+  //       <DialogContent className="max-w-5xl">
+
+  //       </DialogContent>
+  //     </Dialog>
+  //   );
+  // }
+
+  // Sort data by completed tasks for the grid display
+  const sortedData = React.useMemo(() => 
+    [...data].sort((a, b) => b.completed - a.completed)
+  , [data]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -66,7 +66,18 @@ const UserStatsChart = ({ isOpen, onClose, fetchUserStats, useAssignees }) => {
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogClose>
-        
+        {isLoading ? (
+                    <div className="min-h-[600px] flex flex-col items-center justify-center gap-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
+                      <div className="relative bg-blue-500 p-4 rounded-xl">
+                        <RefreshCw className="h-8 w-8 text-white animate-spin" />
+                      </div>
+                    </div>
+                    <p className="text-lg font-medium text-muted-foreground">Fetching latest statistics...</p>
+                  </div>
+          ) : (
+            <>
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
@@ -118,13 +129,15 @@ const UserStatsChart = ({ isOpen, onClose, fetchUserStats, useAssignees }) => {
               <Award className="h-5 w-5" />
               <h3 className="font-semibold">Top Performer</h3>
             </div>
-            <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{topPerformer?.full_name}</p>
+            <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+              {topPerformer?.full_name || 'N/A'}
+            </p>
           </div>
         </div>
 
         {/* User Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto p-1">
-          {data.map((user, index) => (
+          {sortedData.map((user, index) => (
             <div 
               key={user.full_name}
               className="relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition-all duration-200"
@@ -142,7 +155,7 @@ const UserStatsChart = ({ isOpen, onClose, fetchUserStats, useAssignees }) => {
                       <div 
                         className="bg-blue-500 h-2 rounded-full transition-all duration-500"
                         style={{ 
-                          width: `${Math.min((user.completed / topPerformer.completed) * 100, 100)}%`
+                          width: `${Math.min((user.completed / (topPerformer?.completed || 1)) * 100, 100)}%`
                         }}
                       />
                     </div>
@@ -156,6 +169,8 @@ const UserStatsChart = ({ isOpen, onClose, fetchUserStats, useAssignees }) => {
             </div>
           ))}
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

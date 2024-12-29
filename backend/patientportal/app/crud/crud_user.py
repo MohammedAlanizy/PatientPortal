@@ -10,7 +10,8 @@ class CRUDUser(CRUDBase[User, UserCreate, None]):
         db_obj = User(
             username=obj_in.username,
             password=get_password_hash(obj_in.password),
-            role=obj_in.role
+            role=obj_in.role,
+            is_guest=obj_in.is_guest if obj_in.is_guest else False
         )
         db.add(db_obj)
         db.commit()

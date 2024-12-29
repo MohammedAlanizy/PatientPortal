@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 from db.base_class import Base
 
@@ -9,5 +9,5 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False)
-    
+    is_guest = Column(Boolean, default=False, nullable=False)
     requests = relationship("Request", back_populates="creator", foreign_keys="[Request.created_by]")

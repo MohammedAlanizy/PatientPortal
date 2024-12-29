@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./default.db"
     
+    # ADMIN_USERNAME 
+    ADMIN_USERNAME: str = "admin"
+
+    # ADMIN_PASSWORD
+    ADMIN_PASSWORD: str = "admin"
 
     # Frontend URL
     FRONTEND_URL: str = "http://localhost:3000"

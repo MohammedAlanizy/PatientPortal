@@ -9,12 +9,13 @@ import HistoryView from './components/dashboard/HistoryView';
 import ManageUsers from './components/admin/ManageUsers';
 import { ProtectedRoute } from './components/layout/outlet';
 import { AnimatePresence, motion } from 'framer-motion';
+import CreateRequestPage from '@/pages/CreateRequestPage';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 const AppLayout = ({ children, showNav }) => {
   const { isDarkMode } = useDarkMode();
   
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`min-h-screen `}>
       <div className="bg-background text-foreground min-h-screen">
         {showNav && <Navigation />}
         <main className="container mx-auto px-4 py-8">
@@ -29,7 +30,7 @@ const AppLayout = ({ children, showNav }) => {
 
 const AnimatedRoutes = () => {
   const location = useLocation();
-  const showNav = location.pathname !== '/login';
+  const showNav = (location.pathname !== '/login' && location.pathname !== '/create-request');
 
   return (
     <AppLayout showNav={showNav}>
@@ -42,11 +43,12 @@ const AnimatedRoutes = () => {
           transition={{ duration: 0.2 }}
         >
       <Routes location={location}>
+        <Route path="/create-request" element={<CreateRequestPage />} />
         <Route path="/login" element={<SignInPage />} />
         
         {/* Protected Routes for Inserting Role */}
         <Route element={<ProtectedRoute allowedRoles={['inserter', 'verifier', 'admin']} />}>
-          <Route path="/form" element={<RequestForm />} />
+          <Route path="/form" element={<RequestForm isPublic={false} />} />
         </Route>
         {/* Protected Routes for Verifier Role */}
         <Route element={<ProtectedRoute allowedRoles={['verifier', 'admin']} />}>

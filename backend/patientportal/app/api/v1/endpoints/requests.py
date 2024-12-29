@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from crud import crud_request
 from models.request import Request
 from schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse,RequestStats, Status
 from sqlalchemy import func
-from api.deps import get_db, get_current_user, require_roles
+from api.deps import get_db, get_current_user, get_optional_current_user, require_roles
 from models.user import User
 from core.roles import Role
 from .websocket_manager import websocket_manager
+from typing import Optional
 router = APIRouter()
 
 
@@ -38,13 +39,38 @@ def get_request_stats(
         pending=pending_count
     )
 
+def get_request_creator(
+    request: RequestCreate,
+    db: Session,
+    current_user: Optional[User]
+) -> int:
+
+    if request.is_guest:
+        guest_user = db.query(User).filter(User.is_guest == True).first()
+        if not guest_user:
+            raise HTTPException(
+                status_code=500,
+                detail="Guest user not properly initialized"
+            )
+        return guest_user.id
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required for non-guest requests"
+        )
+    return current_user.id
+
+
 @router.post("/", response_model=RequestResponse)
 async def create_request(
     request: RequestCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([Role.ADMIN, Role.INSERTER, Role.VERIFIER]))
+    current_user: Optional[User] = Depends(get_optional_current_user)
 ):
-    new_request = crud_request.create(db, obj_in=request, created_by=current_user.id)
+     
+    created_by = get_request_creator(request, db, current_user)
+    
+    new_request = crud_request.create(db, obj_in=request, created_by=created_by)
     
     # Get all users with ADMIN or VERIFIER roles to notify them
     admin_verifier_users = db.query(User.id).filter(

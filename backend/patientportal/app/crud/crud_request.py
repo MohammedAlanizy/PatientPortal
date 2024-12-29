@@ -9,8 +9,9 @@ class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
     def create(
         self, db: Session, *, obj_in: RequestCreate, created_by: int
     ) -> Request:
+        data = obj_in.dict(exclude={"is_guest"})
         db_obj = Request(
-            **obj_in.dict(),
+            **data,
             created_by=created_by
         )
         db.add(db_obj)

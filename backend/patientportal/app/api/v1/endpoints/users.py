@@ -33,4 +33,6 @@ def delete_user(user_id: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="User not found")
     if user.id == current_user.id:
         raise HTTPException(status_code=400, detail="Can't delete yourself!")
+    if user.is_guest:
+        raise HTTPException(status_code=400, detail="Can't delete guest user!")
     return crud_user.remove(db, id=user_id)
