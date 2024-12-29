@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, User, CreditCard, Folder, Send, Loader2 } from 'lucide-react';
+import { FileText, User, CreditCard, Folder, Send, Loader2, Mail } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +47,7 @@ const RequestForm = ({ isPublic }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    setIsAuthorized(!token);
+    setIsAuthorized(!!token);
   }, []);
 
   const handleInputChange = (e) => {
@@ -71,6 +71,11 @@ const RequestForm = ({ isPublic }) => {
       return;
     }
 
+    if (!isAuthorized){
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('role');
+    }
     setIsSubmitting(true);
     
     try {
@@ -164,24 +169,35 @@ const RequestForm = ({ isPublic }) => {
         </CardContent>
       </Card>
 
-      {isAuthorized && (
+      {!isAuthorized && (
         <footer className="w-full mt-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex items-center justify-center space-x-2 py-4 border-t border-border/40"
+            className="flex flex-col items-center space-y-2 py-4 border-t border-border/40"
           >
-            <User className="h-4 w-4 text-muted-foreground/60" />
-            <span className="text-sm text-muted-foreground/60">
-              Developed and designed by
-            </span>
-            <a 
-              rel="noopener noreferrer" 
-              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            <div className="flex items-center justify-center space-x-2">
+              <User className="h-4 w-4 text-muted-foreground/60" />
+              <span className="text-sm text-muted-foreground/60">
+                Developed and designed by
+              </span>
+              <span className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+                Karim Yahia Alanizy
+              </span>
+            </div>
+            <motion.div 
+              className="flex items-center justify-center gap-2 text-muted-foreground/60 hover:text-primary transition-colors"
+              whileHover={{ scale: 1.01 }}
             >
-              Karim Yahia Alanizy
-            </a>
+              <Mail className="h-4 w-4" />
+              <a 
+                href="mailto:kalanizy@hotmail.com"
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                kalanizy@hotmail.com
+              </a>
+            </motion.div>
           </motion.div>
         </footer>
       )}
