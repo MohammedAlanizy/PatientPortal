@@ -11,6 +11,13 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+
+
+class GuestUserCreate(UserBase):
+    is_guest: bool = True
+    password: Optional[str] = None
+
+
 class UserResponse(UserBase):
     id: int
     class Config:

@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from crud.base import CRUDBase
 from models.user import User
-from schemas.user import UserCreate
+from schemas.user import UserCreate, GuestUserCreate
 from core.security import get_password_hash,verify_password 
 
 class CRUDUser(CRUDBase[User, UserCreate, None]):
@@ -11,7 +11,6 @@ class CRUDUser(CRUDBase[User, UserCreate, None]):
             username=obj_in.username,
             password=get_password_hash(obj_in.password),
             role=obj_in.role,
-            is_guest=obj_in.is_guest if obj_in.is_guest else False
         )
         db.add(db_obj)
         db.commit()
@@ -28,5 +27,17 @@ class CRUDUser(CRUDBase[User, UserCreate, None]):
         if not verify_password(password, user.password):
             return None
         return user
+    
+    def create_guest_user(self, db: Session, *, obj_in: GuestUserCreate) -> User:
+        db_obj = User(
+            username=obj_in.username,
+            is_guest=True,
+            password=get_password_hash(obj_in.password),
+            role=obj_in.role,
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
 
 crud_user = CRUDUser(User)

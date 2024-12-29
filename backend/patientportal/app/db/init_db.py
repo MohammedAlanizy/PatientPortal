@@ -14,7 +14,7 @@ def init_guest_user(db: Session) -> None:
             password=secrets.token_urlsafe(32),  # Random password
             role=Role.INSERTER,
         )
-        crud_user.create(db, obj_in=guest_user)
+        crud_user.create_guest_user(db, obj_in=guest_user)
 
 def init_admin_user(db: Session) -> None:
     admin_user = db.query(User).filter(User.username == settings.ADMIN_USERNAME).first()
