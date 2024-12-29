@@ -74,7 +74,7 @@ async def create_request(
     
     # Get all users with ADMIN or VERIFIER roles to notify them
     admin_verifier_users = db.query(User.id).filter(
-        User.role.in_([Role.ADMIN, Role.VERIFIER])
+        User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER])
     ).all()
     user_ids = [user.id for user in admin_verifier_users]
     
@@ -105,8 +105,14 @@ def read_requests(
     end_date: str = None,
     order_by: Optional[str] = "-updated_at, -created_at",
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
-):
+    current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
+):  
+    # As requested by the client, limit the number of requests that can be fetched at a time and it can be fetched by INSERTER role
+    if limit > 10 and current_user.role == Role.INSERTER:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can't fetch more than 10 requests at a time"
+        )
     # status will get from body 
     filters = {}
     if status:
@@ -149,7 +155,7 @@ async def update_request(
     
     # Get all users with ADMIN or VERIFIER roles to notify them
     admin_verifier_users = db.query(User.id).filter(
-        User.role.in_([Role.ADMIN, Role.VERIFIER])
+        User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER])
     ).all()
     user_ids = [user.id for user in admin_verifier_users]
     

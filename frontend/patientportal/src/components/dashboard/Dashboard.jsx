@@ -222,8 +222,10 @@ const Dashboard = () => {
   const filteredRequests = useMemo(() => {
     return requests.filter(request => {
       const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-      const matchesSearch = request.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          request.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = 
+        request.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.national_id.includes(searchTerm) ||
+        request.medical_number?.includes(searchTerm);
       return matchesStatus && matchesSearch;
     });
   }, [requests, searchTerm, statusFilter]);
