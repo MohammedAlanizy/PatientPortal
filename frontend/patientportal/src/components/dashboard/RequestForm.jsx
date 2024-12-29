@@ -124,10 +124,11 @@ const RequestForm = ({ isPublic }) => {
             
             <FormField 
               labelEn="National ID"
-              labelAr="رقم الهوية الوطنية"
+              labelAr="رقم الهوية الوطنية / الإقامة"
               id="national_id"
               icon={CreditCard}
-              placeholder="أدخل رقم الهوية"
+              maxLength={10}
+              placeholder="أدخل رقم الهوية / الإقامة"
               value={formData.national_id}
               onChange={handleInputChange}
               required
