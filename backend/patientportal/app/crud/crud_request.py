@@ -59,7 +59,7 @@ class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
         skip: int = 0, 
         limit: int = 100,
         filters: Dict[str, Any] = None,
-        join_relationships: List[str] = None
+        order_by: Optional[str] = "-updated_at, -created_at",
     ) -> Dict[str, Any]:
         query = db.query(self.model)
         if filters:
@@ -73,9 +73,17 @@ class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
                 else:
                     query = query.filter(getattr(self.model, attr) == value)
 
-        # Order by created_at in descending order (newest first)
-        query = query.order_by(Request.updated_at.desc())
-        query = query.order_by(Request.created_at.desc())
+
+        # This is powerful search to give the frontend the ability to sort by multiple columns in a single request ( e.g. "-created_at, -updated_at" ) 
+        # { THEY WILL HAVE FUN WITH THIS :) }
+        order_by = order_by.split(", ")
+        print(order_by)
+        for order in order_by:
+            if order[0] == "-":
+                query = query.order_by(getattr(self.model, order[1:]).desc())
+            elif order[0] == "+":
+                query = query.order_by(getattr(self.model, order[1:]).asc())
+        
         total = query.count()
         results = query.offset(skip).limit(limit).all()
         

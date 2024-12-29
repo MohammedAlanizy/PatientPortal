@@ -11,7 +11,7 @@ import { useRequests } from '@/hooks/useRequests';
 const FormField = ({ labelEn, labelAr, id, icon: Icon, placeholder, value, onChange, required }) => (
   <motion.div 
     whileHover={{ scale: 1.01 }} 
-    className="space-y-2"
+    className="space-y-8"
   >
     <div className="flex justify-between items-center mb-2">
       <Label htmlFor={id} className="flex items-center gap-2 text-base">
@@ -96,7 +96,7 @@ const RequestForm = ({ isPublic }) => {
     }
   };
   return (
-    <Card className="w-full shadow-lg">
+    <Card className="w-full shadow-lg ">
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <FormField 

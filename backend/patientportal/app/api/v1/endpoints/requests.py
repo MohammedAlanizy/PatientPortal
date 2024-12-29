@@ -103,6 +103,7 @@ def read_requests(
     status: Status = None,
     start_date: str = None,
     end_date: str = None,
+    order_by: Optional[str] = "-updated_at, -created_at",
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
@@ -115,7 +116,7 @@ def read_requests(
         filters['start_date'] = start_date
     if end_date:
         filters['end_date'] = end_date
-    requests = crud_request.get_multi(db, skip=skip, limit=limit, filters=filters, join_relationships=["assignee"])
+    requests = crud_request.get_multi(db, skip=skip, limit=limit, filters=filters, order_by=order_by)
     return requests
 
 @router.get("/{request_id}", response_model=RequestResponse)
@@ -154,8 +155,8 @@ async def update_request(
     
     # Also don't notify the user who updated the request
     # I know this is always be true, but just to be safe :)
-    if current_user.id in user_ids:
-        user_ids.remove(current_user.id)
+    # if current_user.id in user_ids:
+    #     user_ids.remove(current_user.id)
 
     
     
@@ -169,6 +170,7 @@ async def update_request(
             "medical_number": updated_request.medical_number,
             "notes": updated_request.notes,
             "assigned_to": updated_request.assigned_to,
+            "created_at": updated_request.created_at.isoformat(),
             "updated_by": current_user.id
         }
     }

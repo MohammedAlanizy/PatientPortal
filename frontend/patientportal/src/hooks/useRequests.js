@@ -40,7 +40,12 @@ export const useRequests = create((set, get) => ({
     try {
       const response = await requestsApi.createRequest(data);
       set(state => ({
-        requests: [...state.requests, response.data],
+        ...state,
+        // requests: [{
+        //   ...response.data, created_at: response.data.created_at ? convertUTCToLocal(response.data.created_at) : null,
+        //   updated_at: response.data.updated_at ? convertUTCToLocal(response.data.updated_at) : null
+        // }
+        //   , ...state.requests],
         totalRequests: state.totalRequests + 1,
         isLoading: false
       }));

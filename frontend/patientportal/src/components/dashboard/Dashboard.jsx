@@ -11,14 +11,15 @@ import { useNotification } from '@/contexts/NotificationContext';
 import UserStatsChart from './UserStatsChart';
 import {
   Save, Search, FileText, Clock, CheckCircle, AlertCircle,
-  BarChart3, User, MessageSquare, IdCard, Folder, Loader, Wifi, WifiOff, RefreshCcw
+  BarChart3, User, MessageSquare, IdCard, Folder, Loader, 
+  Wifi, WifiOff, RefreshCcw
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
 const Dashboard = () => {
-  // Get state and actions from Zustand store
+  // Store state
   const requests = useRequests(state => state.requests);
   const isLoading = useRequests(state => state.isLoading);
   const fetchRequests = useRequests(state => state.fetchRequests);
@@ -28,7 +29,7 @@ const Dashboard = () => {
   const remaining = useRequests(state => state.remaining);
   const { assignees, fetchAssignees } = useAssignees();
   const { showNotification } = useNotification();
-  const { isConnected, addMessageListener } = useWebSocket();
+  const { isConnected, addMessageListener, connect } = useWebSocket();
   
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,6 +37,59 @@ const Dashboard = () => {
   const [showUserStats, setShowUserStats] = useState(false);
   const [userStats, setUserStats] = useState([]);
   const [skip, setSkip] = useState(0);
+  const [countdown, setCountdown] = useState(5);
+
+  // Refs for intervals
+  const pollingIntervalRef = React.useRef(null);
+  const countdownIntervalRef = React.useRef(null);
+
+  // Function to start polling with countdown
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) return;
+    
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        await Promise.all([
+          fetchRequests({ skip: 0 }),
+          fetchStats()
+        ]);
+        setCountdown(5); // Reset countdown after successful fetch
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 5000);
+
+    // Start countdown
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown(prev => (prev > 0 ? prev - 1 : 5));
+      connect();
+    }, 1000);
+  }, [fetchRequests, fetchStats]);
+
+  // Function to stop polling
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  }, []);
+
+  // Effect to manage polling based on WebSocket connection
+  useEffect(() => {
+    if (!isConnected) {
+      console.log('WebSocket disconnected, starting polling...');
+      startPolling();
+    } else {
+      console.log('WebSocket connected, stopping polling...');
+      stopPolling();
+    }
+
+    return () => stopPolling();
+  }, [isConnected, startPolling, stopPolling]);
 
   // Initialize data
   useEffect(() => {
@@ -47,7 +101,7 @@ const Dashboard = () => {
           fetchAssignees()
         ]);
       } catch (err) {
-        console.log(err)
+        console.log(err);
         showNotification('Failed to initialize dashboard', 'error');
       }
     };
@@ -79,6 +133,10 @@ const Dashboard = () => {
     return () => cleanup();
   }, [addMessageListener]);
 
+  const handleReconnect = useCallback(() => {
+    connect();
+  }, [connect]);
+
   const handleRefresh = async () => {
     try {
       setSkip(0);
@@ -88,7 +146,7 @@ const Dashboard = () => {
       ]);
       showNotification('Data refreshed successfully', 'success');
     } catch (error) {
-      console.log(error)
+      console.log(error);
       showNotification('Failed to refresh data', 'error');
     }
   };
@@ -110,26 +168,23 @@ const Dashboard = () => {
   };
 
   const handleNewRequest = useCallback((newRequest) => {
-    // Get current state
     const currentRequests = useRequests.getState().requests;
     newRequest.created_at = convertUTCToLocal(newRequest.created_at);
-    // Check if request already exists
+    
     if (!currentRequests.some(req => req.id === newRequest.id)) {
-      // Update Zustand store
       useRequests.setState(state => ({
         requests: [newRequest, ...state.requests],
         totalRequest: state.totalRequest + 1,
         totalPending: state.totalPending + 1
       }));
-      showNotification(`New request for ${newRequest.full_name}`, 'info');
+      showNotification(`New request from ${newRequest.full_name}`, 'info');
     }
   }, [showNotification]);
 
   const handleUpdatedRequest = useCallback((updatedRequest) => {
-    // Get current state
     const currentRequests = useRequests.getState().requests;
     updatedRequest.created_at = convertUTCToLocal(updatedRequest.created_at);
-    // Update the request in the store
+    
     useRequests.setState(state => {
       const newRequests = state.requests.map(req => {
         if (req.id === updatedRequest.id) {
@@ -150,14 +205,12 @@ const Dashboard = () => {
     });
   }, [statusFilter, showNotification]);
 
-  // Stats calculation
   const stats = useMemo(() => ({
     total: useRequests.getState().totalRequest,
     pending: useRequests.getState().totalPending,
     completed: useRequests.getState().totalCompleted,
   }), [requests]);
 
-  // Memoize assignee options
   const assigneeOptions = useMemo(() => 
     assignees.map(assignee => ({
       value: assignee.id.toString(),
@@ -166,7 +219,6 @@ const Dashboard = () => {
     [assignees]
   );
 
-  // Filtered requests
   const filteredRequests = useMemo(() => {
     return requests.filter(request => {
       const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
@@ -179,8 +231,7 @@ const Dashboard = () => {
   const handleSaveRequest = async (requestId, updates) => {
     try {
       await updateRequest(requestId, updates);
-
-      showNotification('Request updated successfully', 'success');
+      // showNotification('Request updated successfully', 'success');
     } catch (err) {
       showNotification(err.response?.data?.detail || 'Failed to update request', 'error');
     }
@@ -188,27 +239,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* Connection Status */}
-      <div className="fixed bottom-4 right-4">
-        <Badge 
-          variant={isConnected ? "success" : "warning"}
-          className="flex items-center gap-2"
-        >
-          {isConnected ? (
-            <>
-              <Wifi className="h-4 w-4" />
-              Connected
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-4 w-4" />
-              Reconnecting...
-            </>
-          )}
-        </Badge>
-      </div>
-
-      {/* Header */}
+      {/* Connection Status with Timer and Reconnect */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -272,14 +303,83 @@ const Dashboard = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-semibold flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-primary" />
-              Requests
-              <Badge variant="secondary" className="ml-2">
-                {stats.pending} pending
-              </Badge>
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-primary" />
+                Requests
+                <Badge variant="secondary" className="ml-2">
+                  {stats.pending} pending
+                </Badge>
+              </CardTitle>
+              
+              {/* Connection Status - New Position */}
+              <div className="flex items-center gap-2">
+                <motion.div
+                  initial={false}
+                  animate={{ 
+                    scale: isConnected ? 1 : [1, 1.1, 1],
+                    transition: { duration: 0.3 }
+                  }}
+                >
+                  <Badge 
+                    variant={isConnected ? "success" : "warning"}
+                    className="flex items-center gap-2"
+                  >
+                    {isConnected ? (
+                      <>
+                        <Wifi className="h-4 w-4" />
+                        Connected
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="h-4 w-4" />
+                        Disconnected
+                      </>
+                    )}
+                  </Badge>
+                </motion.div>
+
+                <AnimatePresence>
+                  {!isConnected && (
+                    <motion.div 
+                      className="flex items-center gap-2"
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: "auto" }}
+                      exit={{ opacity: 0, width: 0 }}
+                    >
+                      <div className="flex items-center gap-2 bg-muted/50 rounded-md px-2 py-1">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        <motion.div
+                          className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center"
+                          animate={{
+                            scale: countdown === 1 ? [1, 1.1, 1] : 1
+                          }}
+                        >
+                          <span className="text-xs font-medium text-primary">{countdown}</span>
+                        </motion.div>
+                      </div>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleReconnect}
+                        className="h-7 px-2 flex items-center gap-1 text-xs"
+                      >
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        >
+                          <RefreshCcw className="h-3 w-3" />
+                        </motion.div>
+                        Reconnect
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           </div>
+
           <div className="mt-4 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -318,7 +418,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <>
-                  {filteredRequests.map((request) => (
+{filteredRequests.map((request) => (
                     <RequestCard
                       key={request.id}
                       request={request}

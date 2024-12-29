@@ -11,6 +11,7 @@ import { ProtectedRoute } from './components/layout/outlet';
 import { AnimatePresence, motion } from 'framer-motion';
 import CreateRequestPage from '@/pages/CreateRequestPage';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import FormPage  from '@/pages/FormPage';
 const AppLayout = ({ children, showNav }) => {
   const { isDarkMode } = useDarkMode();
   
@@ -48,7 +49,7 @@ const AnimatedRoutes = () => {
         
         {/* Protected Routes for Inserting Role */}
         <Route element={<ProtectedRoute allowedRoles={['inserter', 'verifier', 'admin']} />}>
-          <Route path="/form" element={<RequestForm isPublic={false} />} />
+          <Route path="/form" element={<FormPage />} />
         </Route>
         {/* Protected Routes for Verifier Role */}
         <Route element={<ProtectedRoute allowedRoles={['verifier', 'admin']} />}>

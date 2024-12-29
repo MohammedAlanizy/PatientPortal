@@ -34,7 +34,7 @@ export const useWebSocket = () => {
       ws.onopen = () => {
         console.log('WebSocket Connected Successfully');
         setIsConnected(true);
-        showNotification('Connected to real-time updates', 'success');
+        // showNotification('Connected to real-time updates', 'success');
       };
 
       ws.onclose = (event) => {
@@ -114,6 +114,7 @@ export const useWebSocket = () => {
   return {
     isConnected,
     addMessageListener,
-    getConnectionState: () => wsRef.current?.readyState
+    getConnectionState: () => wsRef.current?.readyState,
+    connect
   };
 };
