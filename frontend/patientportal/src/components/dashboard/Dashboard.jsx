@@ -97,7 +97,6 @@ const Dashboard = () => {
       try {
         await Promise.all([
           fetchStats(),
-          fetchRequests({ order_by: '-created_at, -updated_at', status: statusFilter}),
           fetchAssignees()
         ]);
       } catch (err) {
@@ -144,7 +143,7 @@ const Dashboard = () => {
   useEffect(() => {
     handleRefresh();
   }, [statusFilter]);
-  
+
       
   const handleRefresh = async () => {
     try {

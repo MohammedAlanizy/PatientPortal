@@ -32,7 +32,6 @@ export const useRequests = create((set, get) => ({
         if (params.skip === 0) {
           return {
             requests: processedRequests,
-            totalRequest: response.data.length,
             remaining: response.data.remaining,
             isLoading: false
           };
@@ -44,7 +43,6 @@ export const useRequests = create((set, get) => ({
         
         return {
           requests: [...state.requests, ...uniqueNewRequests],
-          totalRequest: response.data.length,
           remaining: response.data.remaining,
           isLoading: false
         };
@@ -120,7 +118,7 @@ export const useRequests = create((set, get) => ({
   },
 
   fetchStats: async () => {
-    set({ isLoading: true, error: null });
+    set({  error: null });
     try {
       const response = await requestsApi.getStats();
       set({ 
@@ -157,8 +155,9 @@ export const useRequests = create((set, get) => ({
       }
       
       if (type === 'updated_request' && existingRequest) {
-        const wasCompleted = existingRequest.status === 'completed';
-        const isNowCompleted = processedRequest.status === 'completed';
+        // for now is always completed as the updated_request event is only for completed requests
+        const wasCompleted = existingRequest.status === 'completed' ;
+        const isNowCompleted = processedRequest.status === 'completed'  ;
         
         const updatedRequests = currentRequests.map(req =>
           req.id === processedRequest.id ? processedRequest : req
@@ -175,7 +174,7 @@ export const useRequests = create((set, get) => ({
             ? state.totalPending
             : isNowCompleted
               ? Math.max(0, state.totalPending - 1)
-              : state.totalPending + 1
+              : state.totalPending + 1,
         };
       }
       
