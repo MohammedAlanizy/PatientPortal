@@ -50,7 +50,7 @@ const Dashboard = () => {
     pollingIntervalRef.current = setInterval(async () => {
       try {
         await Promise.all([
-          fetchRequests({ skip: 0 }),
+          fetchRequests({ skip: 0,  order_by: '-created_at, -updated_at', status: statusFilter }),
           fetchStats()
         ]);
         setCountdown(5); // Reset countdown after successful fetch
@@ -97,7 +97,7 @@ const Dashboard = () => {
       try {
         await Promise.all([
           fetchStats(),
-          fetchRequests(),
+          fetchRequests({ order_by: '-created_at, -updated_at', status: statusFilter}),
           fetchAssignees()
         ]);
       } catch (err) {
@@ -116,10 +116,13 @@ const Dashboard = () => {
         
         switch (message.type) {
           case 'new_request':
-            handleNewRequest(message.data);
-            break;
           case 'updated_request':
-            handleUpdatedRequest(message.data);
+            useRequests.getState().handleWebSocketUpdate(message.data, message.type);
+            if (message.type === 'new_request') {
+              showNotification(`New request from ${message.data.full_name}`, 'info');
+            } else {
+              showNotification(`Request #${message.data.id} has been updated`, 'info');
+            }
             break;
           default:
             console.log('Unknown message type:', message.type);
@@ -131,22 +134,28 @@ const Dashboard = () => {
 
     const cleanup = addMessageListener(handleMessage);
     return () => cleanup();
-  }, [addMessageListener]);
+  }, [addMessageListener, showNotification]);
 
   const handleReconnect = useCallback(() => {
     connect();
   }, [connect]);
 
+  // Function to refresh data, when status filter changes, which will call handleRefresh
+  useEffect(() => {
+    handleRefresh();
+  }, [statusFilter]);
+  
+      
   const handleRefresh = async () => {
     try {
       setSkip(0);
-      const [requestsData, statsData] = await Promise.all([
-        fetchRequests({ skip: 0 }),
+      await Promise.all([
+        fetchRequests({ skip: 0, order_by: '-created_at, -updated_at', status: statusFilter }),
         fetchStats()
       ]);
       showNotification('Data refreshed successfully', 'success');
     } catch (error) {
-      console.log(error);
+      console.error(error);
       showNotification('Failed to refresh data', 'error');
     }
   };
@@ -155,7 +164,11 @@ const Dashboard = () => {
     try {
       const newSkip = requests.length;
       setSkip(newSkip);
-      await fetchRequests({ skip: newSkip });
+      await fetchRequests({ 
+        skip: newSkip, 
+        order_by: '-created_at, -updated_at', 
+        status: statusFilter 
+      });
     } catch (error) {
       showNotification('Failed to load more requests', 'error');
     }
