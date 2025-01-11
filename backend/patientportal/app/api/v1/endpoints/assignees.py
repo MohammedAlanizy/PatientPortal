@@ -1,14 +1,14 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from api.deps import get_db, get_current_user, require_roles
-from crud.crud_assignee import crud_assignee
-from schemas.assignee import AssigneeCreate, AssigneeUpdate, AssigneeResponse, AssigneeListResponse, AssigneeStats, AssigneeStatsResponse
-from models.user import User
-from models.assignee import Assignee
-from models.request import Request
-from schemas.request import Status
-from core.roles import Role
+from app.api.deps import get_db, get_current_user, require_roles
+from app.crud.crud_assignee import crud_assignee
+from app.schemas.assignee import AssigneeCreate, AssigneeUpdate, AssigneeResponse, AssigneeListResponse, AssigneeStats, AssigneeStatsResponse
+from app.models.user import User
+from app.models.assignee import Assignee
+from app.models.request import Request
+from app.schemas.request import Status
+from app.core.roles import Role
 
 router = APIRouter()
 

@@ -411,7 +411,6 @@ const Dashboard = () => {
                 <SelectValue placeholder="Filter status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Requests</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
               </SelectContent>

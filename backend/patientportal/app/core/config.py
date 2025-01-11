@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, ClassVar
 from functools import lru_cache
+from pydantic import ConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Medical Request System"
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     
     # JWT
-    SECRET_KEY: str
+    SECRET_KEY: str = "SECRET_KEY"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
@@ -33,10 +34,12 @@ class Settings(BaseSettings):
     # Pagination
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
-    
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
+
+    # Testing
+    TESTING: bool = False
+
+    Config: ClassVar[ConfigDict] = ConfigDict(case_sensitive=True, env_file=".env")
+
 
 @lru_cache()
 def get_settings():

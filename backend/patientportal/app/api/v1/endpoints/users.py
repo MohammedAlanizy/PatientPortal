@@ -1,16 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from crud import crud_user
-from schemas.user import UserCreate, UserResponse, UserListResponse
-from api.deps import get_db, get_current_user,require_roles
-from core.roles import Role
-from models.user import User
+from app.crud import crud_user
+from app.schemas.user import UserCreate, UserResponse, UserListResponse
+from app.api.deps import get_db, get_current_user,require_roles
+from app.core.roles import Role
+from app.models.user import User
 
 router = APIRouter()
 
 @router.post("/", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+def create_user(user: UserCreate, db: Session = Depends(get_db), 
+                current_user: User = Depends(require_roles([Role.ADMIN]))):
     db_user = crud_user.get_by_username(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")

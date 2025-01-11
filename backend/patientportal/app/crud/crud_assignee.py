@@ -1,8 +1,8 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from crud.base import CRUDBase
-from models.assignee import Assignee
-from schemas.assignee import AssigneeCreate, AssigneeUpdate
+from app.crud.base import CRUDBase
+from app.models.assignee import Assignee
+from app.schemas.assignee import AssigneeCreate, AssigneeUpdate
 
 class CRUDAssignee(CRUDBase[Assignee, AssigneeCreate, AssigneeUpdate]):
     def get_by_name(self, db: Session, *, full_name: str) -> Optional[Assignee]:

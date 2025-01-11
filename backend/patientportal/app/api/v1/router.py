@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.v1.endpoints import users, requests, auth, assignees, websocket
+from app.api.v1.endpoints import users, requests, auth, assignees, websocket
 
 api_router = APIRouter()
 

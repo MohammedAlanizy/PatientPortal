@@ -1,23 +1,41 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from core.config import settings
-from api.v1.router import api_router
-from db.base import Base
-from db.init_db import init_guest_user, init_admin_user
-from db.session import engine, SessionLocal
-from core.exceptions import (
+from app.core.config import settings
+from app.api.v1.router import api_router
+from app.db.base import Base
+from app.db.init_db import init_guest_user, init_admin_user
+from app.db.session import engine, SessionLocal
+from contextlib import asynccontextmanager
+from app.core.exceptions import (
     global_exception_handler,
     validation_exception_handler
 )
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if not settings.TESTING:
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            # This will create a guest user and an admin user if they don't exist as it should be always one admin account and one guest account 
+            # in the system. The admin account is created with the username and password specified in the .env
+            init_guest_user(db)
+            init_admin_user(db)
+        finally:
+            db.close()
+    yield
+
 
 def create_application() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
+        lifespan=lifespan,
     )
     
     # CORS configuration
+    print(settings.FRONTEND_URL)
     origins = [
         settings.FRONTEND_URL,
     ]
@@ -39,15 +57,3 @@ def create_application() -> FastAPI:
     return app
 
 app = create_application()
-
-@app.on_event("startup")
-async def startup_event():
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        # This will create a guest user and an admin user if they don't exist as it should be always one admin account and one guest account 
-        # in the system. The admin account is created with the username and password specified in the .env
-        init_guest_user(db)
-        init_admin_user(db)
-    finally:
-        db.close()

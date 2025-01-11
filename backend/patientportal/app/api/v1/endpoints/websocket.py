@@ -1,8 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
-from api.deps import get_current_user_ws
-from models.user import User
+from app.api.deps import get_current_user_ws
+from app.models.user import User
 from .websocket_manager import websocket_manager
-from core.roles import Role
+from app.core.roles import Role
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ async def websocket_endpoint(
 ):
     try:
         await websocket_manager.connect(websocket, current_user.id)
-        
+        # await websocket.send_text("Connection established")
         try:
             while True:
                 # Keep the connection alive

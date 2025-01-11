@@ -1,15 +1,15 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from crud.base import CRUDBase
-from models.request import Request
-from schemas.request import RequestCreate, RequestUpdate
+from app.crud.base import CRUDBase
+from app.models.request import Request
+from app.schemas.request import RequestCreate, RequestUpdate
 from datetime import timedelta, datetime
 
 class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
     def create(
         self, db: Session, *, obj_in: RequestCreate, created_by: int
     ) -> Request:
-        data = obj_in.dict(exclude={"is_guest"})
+        data = obj_in.model_dump(exclude={"is_guest"})
         db_obj = Request(
             **data,
             created_by=created_by
@@ -77,7 +77,6 @@ class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
         # This is powerful search to give the frontend the ability to sort by multiple columns in a single request ( e.g. "-created_at, -updated_at" ) 
         # { THEY WILL HAVE FUN WITH THIS :) }
         order_by = order_by.split(", ")
-        print(order_by)
         for order in order_by:
             if order[0] == "-":
                 query = query.order_by(getattr(self.model, order[1:]).desc())

@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from crud import crud_request
-from models.request import Request
-from schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse,RequestStats, Status
+from app.crud import crud_request
+from app.models.request import Request
+from app.schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse,RequestStats, Status
 from sqlalchemy import func
-from api.deps import get_db, get_current_user, get_optional_current_user, require_roles
-from models.user import User
-from core.roles import Role
+from app.api.deps import get_db, get_current_user, get_optional_current_user, require_roles
+from app.models.user import User
+from app.core.roles import Role
 from .websocket_manager import websocket_manager
 from typing import Optional
 router = APIRouter()
@@ -107,23 +107,29 @@ def read_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
 ):  
-    # As requested by the client, limit the number of requests that can be fetched at a time and it can be fetched by INSERTER role
-    if limit > 10 and current_user.role == Role.INSERTER:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Can't fetch more than 10 requests at a time"
-        )
-    # status will get from body 
-    filters = {}
-    if status:
-        filters['status'] = status
-    # startDate and endDate will get from body
-    if start_date:
-        filters['start_date'] = start_date
-    if end_date:
-        filters['end_date'] = end_date
-    requests = crud_request.get_multi(db, skip=skip, limit=limit, filters=filters, order_by=order_by)
-    return requests
+    try:
+        # As requested by the client, limit the number of requests that can be fetched at a time and it can be fetched by INSERTER role
+        if limit > 10 and current_user.role == Role.INSERTER:
+            raise HTTPException(
+                status_code=400,
+                detail="Can't fetch more than 10 requests at a time for INSERTER role"
+            )
+        # status will get from body 
+        filters = {}
+        if status:
+            filters['status'] = status
+        # startDate and endDate will get from body
+        if start_date:
+            filters['start_date'] = start_date
+        if end_date:
+            filters['end_date'] = end_date
+        requests = crud_request.get_multi(db, skip=skip, limit=limit, filters=filters, order_by=order_by)
+        return requests
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{request_id}", response_model=RequestResponse)
 def read_request(
@@ -135,6 +141,7 @@ def read_request(
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     return request
+    
 
 @router.put("/{request_id}", response_model=RequestResponse)
 async def update_request(
@@ -143,46 +150,52 @@ async def update_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
-    request = crud_request.get(db, id=request_id)
-    if not request:
-        raise HTTPException(status_code=404, detail="Request not found")
-    if request.status == Status.COMPLETED:
-        if current_user.role != Role.ADMIN:
-            raise HTTPException(status_code=403, detail="Only admin can edit completed requests")
+    try:
+        request = crud_request.get(db, id=request_id)
+        if not request:
+            raise HTTPException(status_code=404, detail="Request not found")
+        if request.status == Status.COMPLETED:
+            if current_user.role != Role.ADMIN:
+                raise HTTPException(status_code=403, detail="Only admin can edit completed requests")
+            
+        request.status = Status.COMPLETED
+        updated_request = crud_request.update(db, db_obj=request, obj_in=request_in)
         
-    request.status = Status.COMPLETED
-    updated_request = crud_request.update(db, db_obj=request, obj_in=request_in)
-    
-    # Get all users with ADMIN or VERIFIER roles to notify them
-    admin_verifier_users = db.query(User.id).filter(
-        User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER])
-    ).all()
-    user_ids = [user.id for user in admin_verifier_users]
-    
-    # Also don't notify the user who updated the request
-    # I know this is always be true, but just to be safe :)
-    # if current_user.id in user_ids:
-    #     user_ids.remove(current_user.id)
+        # Get all users with ADMIN or VERIFIER roles to notify them
+        admin_verifier_users = db.query(User.id).filter(
+            User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER])
+        ).all()
+        user_ids = [user.id for user in admin_verifier_users]
+        
+        # Also don't notify the user who updated the request
+        # I know this is always be true, but just to be safe :)
+        # if current_user.id in user_ids:
+        #     user_ids.remove(current_user.id)
 
-    
-    
-    notification = {
-        "type": "updated_request",
-        "data": {
-            "id": updated_request.id,
-            "full_name": updated_request.full_name,
-            "status": updated_request.status,
-            "updated_at": updated_request.updated_at.isoformat() if updated_request.updated_at else None,
-            "medical_number": updated_request.medical_number,
-            "notes": updated_request.notes,
-            "assigned_to": updated_request.assigned_to,
-            "created_at": updated_request.created_at.isoformat(),
-            "updated_by": current_user.id
+        
+        
+        notification = {
+            "type": "updated_request",
+            "data": {
+                "id": updated_request.id,
+                "full_name": updated_request.full_name,
+                "status": updated_request.status,
+                "updated_at": updated_request.updated_at.isoformat() if updated_request.updated_at else None,
+                "medical_number": updated_request.medical_number,
+                "notes": updated_request.notes,
+                "assigned_to": updated_request.assigned_to,
+                "created_at": updated_request.created_at.isoformat(),
+                "updated_by": current_user.id
+            }
         }
-    }
-    
-    # Broadcast to all relevant users
-    await websocket_manager.broadcast_to_users(user_ids, notification)
-    
-    return updated_request
+        
+        # Broadcast to all relevant users
+        await websocket_manager.broadcast_to_users(user_ids, notification)
+        
+        return updated_request
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 

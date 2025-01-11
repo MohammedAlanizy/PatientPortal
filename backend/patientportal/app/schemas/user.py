@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from core.roles import Role
+from app.core.roles import Role
 
 
 

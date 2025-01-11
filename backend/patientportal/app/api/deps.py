@@ -4,11 +4,11 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
-from db.session import SessionLocal
-from core.config import settings
-from crud import crud_user
-from models.user import User
-from core.roles import Role
+from app.db.session import SessionLocal
+from app.core.config import settings
+from app.crud import crud_user
+from app.models.user import User
+from app.core.roles import Role
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 

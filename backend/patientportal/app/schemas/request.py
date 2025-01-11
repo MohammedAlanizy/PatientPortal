@@ -2,8 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, List, Union
 from datetime import datetime
 from enum import Enum
-from schemas.user import UserResponse
-from schemas.assignee import AssigneeResponse
+from app.schemas.user import UserResponse
+from app.schemas.assignee import AssigneeResponse
 
 class Status(str, Enum):
     COMPLETED = "completed"

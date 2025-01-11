@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
-from models.user import User
-from core.roles import Role
-from crud import crud_user
-from core.config import settings
+from app.models.user import User
+from app.core.roles import Role
+from app.crud import crud_user
+from app.core.config import settings
 import secrets
 
 def init_guest_user(db: Session) -> None:

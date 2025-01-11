@@ -34,4 +34,5 @@ __pycache__/
 tmp/
 temp/
 
-
+*.zip
+*.zip

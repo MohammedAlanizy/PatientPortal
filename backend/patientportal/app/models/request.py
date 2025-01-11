@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
-from db.base_class import Base
-from schemas.request import Status
+from app.db.base_class import Base
+from app.schemas.request import Status
 class Request(Base):
     __tablename__ = "requests"
 
