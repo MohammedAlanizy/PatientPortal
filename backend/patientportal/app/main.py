@@ -5,25 +5,28 @@ from app.core.config import settings
 from app.api.v1.router import api_router
 from app.db.base import Base
 from app.db.init_db import init_guest_user, init_admin_user
-from app.db.session import engine, SessionLocal
+from app.db.session import engine
 from contextlib import asynccontextmanager
+from app.db.session import AsyncSessionLocal
 from app.core.exceptions import (
     global_exception_handler,
     validation_exception_handler
 )
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if not settings.TESTING:
-        Base.metadata.create_all(bind=engine)
-        db = SessionLocal()
-        try:
-            # This will create a guest user and an admin user if they don't exist as it should be always one admin account and one guest account 
-            # in the system. The admin account is created with the username and password specified in the .env
-            init_guest_user(db)
-            init_admin_user(db)
-        finally:
-            db.close()
+        async with engine.begin() as conn:
+            # Create all tables if not exists
+            await conn.run_sync(Base.metadata.create_all)
+
+        # Initialize application data
+        async with AsyncSessionLocal() as db:
+            await init_guest_user(db)
+            await init_admin_user(db)
+
+    # Yield control to the application
     yield
 
 
@@ -35,7 +38,6 @@ def create_application() -> FastAPI:
     )
     
     # CORS configuration
-    print(settings.FRONTEND_URL)
     origins = [
         settings.FRONTEND_URL,
     ]

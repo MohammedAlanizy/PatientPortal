@@ -1,8 +1,7 @@
+from app.core.config import settings, get_settings
 from locust import HttpUser, task, between, events
 import random
 import logging
-
-
 class MedicalSystemUser(HttpUser):
     wait_time = between(1, 3)  # Wait between 1-3 seconds between tasks
     token = None
@@ -13,8 +12,8 @@ class MedicalSystemUser(HttpUser):
         response = self.client.post(
             "/api/v1/auth/login",
             data={
-                "username": "admin",
-                "password": "admin"
+                "username": settings.ADMIN_USERNAME,
+                "password": settings.ADMIN_PASSWORD
             }
         )
         if response.status_code == 200:
@@ -84,11 +83,11 @@ class MedicalSystemUser(HttpUser):
             return
 
         # Step 1: Create a new request
-        national_id = random.randint(1000000000, 9999999999)
+        national_id = random.randint(10000000000, 99999999999)
         initial_data = {
             "full_name": f"Test User {national_id}",
             "national_id": national_id,
-            "medical_number": random.randint(1000000, 9999999)
+            "medical_number": random.randint(10000000000, 99999999999)
         }
         create_response = self.client.post(
             "/api/v1/requests/",
@@ -102,7 +101,7 @@ class MedicalSystemUser(HttpUser):
             
             # Step 2: Update the created request with a valid assignee
             update_data = {
-                "medical_number": random.randint(1111111, 9999999),
+                "medical_number": random.randint(10000000000, 99999999999),
                 "notes": "Updated notes",
                 "assigned_to": random.choice(self.assignee_ids)
             }

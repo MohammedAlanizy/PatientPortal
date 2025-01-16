@@ -1,10 +1,14 @@
-def test_create_assignee(client, admin_token):
+import pytest
+from httpx import AsyncClient
+
+@pytest.mark.asyncio
+async def test_create_assignee(client, admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
     assignee_data = {
         "full_name": "Test Assignee"
     }
     
-    response = client.post(
+    response = await client.post(
         "/api/v1/assignees/",
         json=assignee_data,
         headers=headers
@@ -13,27 +17,27 @@ def test_create_assignee(client, admin_token):
     assert response.status_code == 200
     data = response.json()
     assert data["full_name"] == assignee_data["full_name"]
+    assert data["id"] is not None
 
-    assignee_id = data["id"]
-    assert assignee_id is not None
-
-def test_get_assignees(client, admin_token):
+@pytest.mark.asyncio
+async def test_get_assignees(client, admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}
     
-    response = client.get("/api/v1/assignees/", headers=headers)
+    response = await client.get("/api/v1/assignees/", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert "results" in data
     assert "remaining" in data
 
-def test_update_assignee(client, admin_token):
+@pytest.mark.asyncio
+async def test_update_assignee(client, admin_token):
     # First create an assignee
     headers = {"Authorization": f"Bearer {admin_token}"}
     initial_assignee = {
         "full_name": "Test Assignee"
     }
     
-    create_response = client.post(
+    create_response = await client.post(
         "/api/v1/assignees/",
         json=initial_assignee,
         headers=headers
@@ -45,7 +49,7 @@ def test_update_assignee(client, admin_token):
         "full_name": "Updated Assignee"
     }
     
-    response = client.put(
+    response = await client.put(
         f"/api/v1/assignees/{assignee_id}",
         json=update_data,
         headers=headers
@@ -55,14 +59,15 @@ def test_update_assignee(client, admin_token):
     data = response.json()
     assert data["full_name"] == update_data["full_name"]
 
-def test_delete_assignee(client, admin_token):
+@pytest.mark.asyncio
+async def test_delete_assignee(client, admin_token):
     # First create an assignee
     headers = {"Authorization": f"Bearer {admin_token}"}
     assignee_data = {
         "full_name": "Test Assignee"
     }
     
-    create_response = client.post(
+    create_response = await client.post(
         "/api/v1/assignees/",
         json=assignee_data,
         headers=headers
@@ -70,7 +75,7 @@ def test_delete_assignee(client, admin_token):
     assignee_id = create_response.json()["id"]
     
     # Now delete it
-    response = client.delete(
+    response = await client.delete(
         f"/api/v1/assignees/{assignee_id}",
         headers=headers
     )
@@ -78,7 +83,7 @@ def test_delete_assignee(client, admin_token):
     assert response.status_code == 200
     
     # Verify it's deleted
-    get_response = client.get(
+    get_response = await client.get(
         f"/api/v1/assignees/{assignee_id}",
         headers=headers
     )

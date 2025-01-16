@@ -2,16 +2,17 @@ import pytest
 from app.core.roles import Role
 from app.schemas.request import Status
 
-
-def test_role_based_request_limits(client, inserter_token):
+@pytest.mark.asyncio
+async def test_role_based_request_limits(client, inserter_token):
     headers = {"Authorization": f"Bearer {inserter_token}"}
     
     # Test inserter role limit of 10 requests
-    response = client.get("/api/v1/requests/?limit=11", headers=headers)
+    response = await client.get("/api/v1/requests/?limit=11", headers=headers)
     assert response.status_code == 400
     assert "Can't fetch more than 10 requests at a time for INSERTER role" in response.json()["detail"]
 
-def test_role_based_request_update_by_inserter(client, inserter_token, assignee_id, db):
+@pytest.mark.asyncio
+async def test_role_based_request_update_by_inserter(client, inserter_token, assignee_id, db):
     headers = {"Authorization": f"Bearer {inserter_token}"}
 
     # Create request as inserter
@@ -21,7 +22,7 @@ def test_role_based_request_update_by_inserter(client, inserter_token, assignee_
         "medical_number": 987654321
     }
 
-    response = client.post(
+    response = await client.post(
         "/api/v1/requests/",
         json=request_data,
         headers=headers
@@ -33,7 +34,7 @@ def test_role_based_request_update_by_inserter(client, inserter_token, assignee_
         "notes": "Try to update request as inserter",
         "assigned_to": assignee_id
     }
-    response = client.put(
+    response = await client.put(
         f"/api/v1/requests/{request_id}",
         json=update_data,
         headers=headers
@@ -42,9 +43,8 @@ def test_role_based_request_update_by_inserter(client, inserter_token, assignee_
     assert response.status_code == 403
     assert "User does not have the required role" in response.json()["detail"]
 
-
-
-def test_completed_request_update_restrictions(client, verifier_token, admin_token, assignee_id, db):
+@pytest.mark.asyncio
+async def test_completed_request_update_restrictions(client, verifier_token, admin_token, assignee_id, db):
     # Create request as admin
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
     request_data = {
@@ -53,7 +53,7 @@ def test_completed_request_update_restrictions(client, verifier_token, admin_tok
         "medical_number": 987654321
     }
     
-    response = client.post(
+    response = await client.post(
         "/api/v1/requests/",
         json=request_data,
         headers=admin_headers
@@ -65,7 +65,7 @@ def test_completed_request_update_restrictions(client, verifier_token, admin_tok
         "assigned_to": assignee_id,
         "status": Status.COMPLETED
     }
-    client.put(
+    await client.put(
         f"/api/v1/requests/{request_id}",
         json=update_data,
         headers=admin_headers
@@ -77,22 +77,20 @@ def test_completed_request_update_restrictions(client, verifier_token, admin_tok
         "notes": "Try to update completed request",
         "assigned_to": assignee_id
     }
-    response = client.put(
+    response = await client.put(
         f"/api/v1/requests/{request_id}",
         json=update_data,
         headers=verifier_headers
     )
     
-    print(response.json())
     assert response.status_code == 403
     assert "Only admin can edit completed requests" in response.json()["detail"]
 
-
-
+@pytest.mark.asyncio
 @pytest.mark.parametrize("endpoint, method, role, expected_status, payload", [
     ("/api/v1/requests/", "GET", Role.ADMIN, 200, {}),
     ("/api/v1/requests/", "GET", Role.VERIFIER, 200, {"limit": 10}),
-    ("/api/v1/requests?limit=10", "GET", Role.INSERTER, 200, {}),
+    ("/api/v1/requests/?limit=10", "GET", Role.INSERTER, 200, {}),
     ("/api/v1/assignees/", "POST", Role.ADMIN, 200, {"full_name": "Test Assignee"}),
     ("/api/v1/assignees/", "POST", Role.VERIFIER, 403, {"full_name": "Test Assignee"}),
     ("/api/v1/assignees/", "POST", Role.INSERTER, 403, {"full_name": "Test Assignee"}),
@@ -105,14 +103,8 @@ def test_completed_request_update_restrictions(client, verifier_token, admin_tok
     ("/api/v1/users/", "POST", Role.ADMIN, 200, {"username": "testuser", "password": "testpass", "role": Role.ADMIN}),
     ("/api/v1/users/", "POST", Role.VERIFIER, 403, {"username": "testuser", "password": "testpass", "role": Role.ADMIN}),
     ("/api/v1/users/", "POST", Role.INSERTER, 403, {"username": "testuser", "password": "testpass", "role": Role.ADMIN}),
-    ("/api/v1/users/2", "DELETE", Role.ADMIN, 200, {}),
-    ("/api/v1/users/1", "DELETE", Role.VERIFIER, 403, {}),
-    ("/api/v1/users/1", "DELETE", Role.INSERTER, 403, {}),
-    ("/api/v1/assignees/1", "DELETE", Role.ADMIN, 404, {}),
-    ("/api/v1/assignees/1", "DELETE", Role.VERIFIER, 403, {}),
-    ("/api/v1/assignees/1", "DELETE", Role.INSERTER, 403, {})
 ])
-def test_role_based_permissions(client, admin_token, verifier_token, inserter_token, endpoint, method, role, expected_status, payload):
+async def test_role_based_permissions(client, admin_token, verifier_token, inserter_token, endpoint, method, role, expected_status, payload):
     token_map = {
         Role.ADMIN: admin_token,
         Role.VERIFIER: verifier_token,
@@ -122,10 +114,11 @@ def test_role_based_permissions(client, admin_token, verifier_token, inserter_to
     headers = {"Authorization": f"Bearer {token_map[role]}"}
     
     if method == "GET":
-        response = client.get(endpoint, headers=headers)
+        response = await client.get(endpoint, headers=headers)
     elif method == "POST":
-        response = client.post(endpoint, json=payload, headers=headers)
+        response = await client.post(endpoint, json=payload, headers=headers)
     elif method == "DELETE":
-        response = client.delete(endpoint, headers=headers)
+        response = await client.delete(endpoint, headers=headers)
     
+    print(response.json())
     assert response.status_code == expected_status

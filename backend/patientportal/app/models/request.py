@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer,BigInteger, String, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 from app.schemas.request import Status
@@ -7,8 +7,8 @@ class Request(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String(100), nullable=False)
-    national_id = Column(Integer, nullable=False)
-    medical_number = Column(Integer, nullable=True)
+    national_id = Column(BigInteger, nullable=False)
+    medical_number = Column(BigInteger, nullable=True)
     notes = Column(String(255), nullable=True)
     status = Column(String(20), nullable=True, default=Status.PENDING)
     created_by = Column(Integer, ForeignKey("users.id"))

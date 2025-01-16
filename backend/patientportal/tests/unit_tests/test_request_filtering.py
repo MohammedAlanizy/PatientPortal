@@ -1,8 +1,10 @@
+import pytest
 from datetime import datetime
 from app.schemas.request import Status
+from httpx import AsyncClient
 
-
-def test_request_complex_filtering(client, admin_token, db):
+@pytest.mark.asyncio
+async def test_request_complex_filtering(client, admin_token, db):
     headers = {"Authorization": f"Bearer {admin_token}"}
     
     # Create requests with different statuses and dates
@@ -13,28 +15,27 @@ def test_request_complex_filtering(client, admin_token, db):
             "medical_number": 2000000 + i,
             "status": Status.PENDING if i % 2 == 0 else Status.COMPLETED
         }
-        client.post("/api/v1/requests/", json=request_data, headers=headers)
+        await client.post("/api/v1/requests/", json=request_data, headers=headers)
     
     # Test filtering by status
-    response = client.get(
+    response = await client.get(
         f"/api/v1/requests/?status={Status.PENDING.value}",
         headers=headers
     )
-    print(response.json())
     assert response.status_code == 200
     data = response.json()
     assert all(r["status"] == Status.PENDING for r in data["results"])
     
     # Test filtering by date range
     today = datetime.now().strftime("%Y-%m-%d")
-    response = client.get(
+    response = await client.get(
         f"/api/v1/requests/?start_date={today}&end_date={today}",
         headers=headers
     )
     assert response.status_code == 200
     
     # Test invalid date format
-    response = client.get(
+    response = await client.get(
         "/api/v1/requests/?start_date=invalid-date",
         headers=headers
     )

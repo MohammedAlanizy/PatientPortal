@@ -1,52 +1,46 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
 from app.crud import crud_request
 from app.models.request import Request
-from app.schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse,RequestStats, Status
-from sqlalchemy import func
+from app.schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse, RequestStats, Status
+from sqlalchemy import func, select
 from app.api.deps import get_db, get_current_user, get_optional_current_user, require_roles
 from app.models.user import User
 from app.core.roles import Role
 from .websocket_manager import websocket_manager
-from typing import Optional
+from app.core.config import settings
+
 router = APIRouter()
 
-
-
 @router.get("/stats", response_model=RequestStats)
-def get_request_stats(
-    db: Session = Depends(get_db),
+async def get_request_stats(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
-    total_count = db.query(func.count(Request.id)).scalar() or 0
-    
-    completed_count = (
-        db.query(func.count(Request.id))
-        .filter(Request.status == Status.COMPLETED)
-        .scalar() or 0
+    total_count = await db.scalar(select(func.count(Request.id)))
+    completed_count = await db.scalar(
+        select(func.count(Request.id)).filter(Request.status == Status.COMPLETED)
     )
-    
-    pending_count = (
-        db.query(func.count(Request.id))
-        .filter(Request.status == Status.PENDING)
-        .scalar() or 0
+    pending_count = await db.scalar(
+        select(func.count(Request.id)).filter(Request.status == Status.PENDING)
     )
 
     return RequestStats(
-        total=total_count,
-        completed=completed_count,
-        pending=pending_count
+        total=total_count or 0,
+        completed=completed_count or 0,
+        pending=pending_count or 0
     )
 
-def get_request_creator(
+async def get_request_creator(
     request: RequestCreate,
-    db: Session,
+    db: AsyncSession,
     current_user: Optional[User]
 ) -> int:
-
     if request.is_guest:
-        guest_user = db.query(User).filter(User.is_guest == True).first()
+        query = select(User).filter(User.is_guest == True)
+        result = await db.execute(query)
+        guest_user = result.scalar_one_or_none()
         if not guest_user:
             raise HTTPException(
                 status_code=500,
@@ -60,25 +54,20 @@ def get_request_creator(
         )
     return current_user.id
 
-
 @router.post("/", response_model=RequestResponse)
 async def create_request(
     request: RequestCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_current_user)
 ):
-     
-    created_by = get_request_creator(request, db, current_user)
-    
-    new_request = crud_request.create(db, obj_in=request, created_by=created_by)
+    created_by = await get_request_creator(request, db, current_user)
+    new_request = await crud_request.create(db, obj_in=request, created_by=created_by)
     
     # Get all users with ADMIN or VERIFIER roles to notify them
-    admin_verifier_users = db.query(User.id).filter(
-        User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER])
-    ).all()
-    user_ids = [user.id for user in admin_verifier_users]
+    query = select(User.id).filter(User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
+    result = await db.execute(query)
+    user_ids = [row[0] for row in result.all()]
     
-    # Prepare notification message
     notification = {
         "type": "new_request",
         "data": {
@@ -91,88 +80,80 @@ async def create_request(
         }
     }
     
-    # Broadcast to all relevant users
     await websocket_manager.broadcast_to_users(user_ids, notification)
-
     return new_request
 
 @router.get("/", response_model=RequestListResponse)
-def read_requests(
+async def read_requests(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = settings.MAX_FETCH_LIMIT,
     status: Status = None,
     start_date: str = None,
     end_date: str = None,
     order_by: Optional[str] = "-updated_at, -created_at",
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
-):  
+):
     try:
-        # As requested by the client, limit the number of requests that can be fetched at a time and it can be fetched by INSERTER role
         if limit > 10 and current_user.role == Role.INSERTER:
             raise HTTPException(
                 status_code=400,
                 detail="Can't fetch more than 10 requests at a time for INSERTER role"
             )
-        # status will get from body 
+        if limit > settings.MAX_FETCH_LIMIT:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Limit must be less than or equal to {settings.MAX_FETCH_LIMIT}"
+            )
         filters = {}
         if status:
             filters['status'] = status
-        # startDate and endDate will get from body
         if start_date:
             filters['start_date'] = start_date
         if end_date:
             filters['end_date'] = end_date
-        requests = crud_request.get_multi(db, skip=skip, limit=limit, filters=filters, order_by=order_by)
+            
+        requests = await crud_request.get_multi(
+            db, skip=skip, limit=limit, filters=filters, order_by=order_by
+        )
         return requests
+        
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{request_id}", response_model=RequestResponse)
-def read_request(
+async def read_request(
     request_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
-    request = crud_request.get(db, id=request_id)
+    request = await crud_request.get(db, id=request_id)
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     return request
-    
 
 @router.put("/{request_id}", response_model=RequestResponse)
 async def update_request(
     request_id: int,
     request_in: RequestUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
     try:
-        request = crud_request.get(db, id=request_id)
+        request = await crud_request.get(db, id=request_id)
         if not request:
             raise HTTPException(status_code=404, detail="Request not found")
-        if request.status == Status.COMPLETED:
-            if current_user.role != Role.ADMIN:
-                raise HTTPException(status_code=403, detail="Only admin can edit completed requests")
+        if request.status == Status.COMPLETED and current_user.role != Role.ADMIN:
+            raise HTTPException(status_code=403, detail="Only admin can edit completed requests")
             
         request.status = Status.COMPLETED
-        updated_request = crud_request.update(db, db_obj=request, obj_in=request_in)
+        updated_request = await crud_request.update(db, db_obj=request, obj_in=request_in)
         
-        # Get all users with ADMIN or VERIFIER roles to notify them
-        admin_verifier_users = db.query(User.id).filter(
-            User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER])
-        ).all()
-        user_ids = [user.id for user in admin_verifier_users]
-        
-        # Also don't notify the user who updated the request
-        # I know this is always be true, but just to be safe :)
-        # if current_user.id in user_ids:
-        #     user_ids.remove(current_user.id)
-
-        
+        query = select(User.id).filter(User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
+        result = await db.execute(query)
+        user_ids = [row[0] for row in result.all()]
         
         notification = {
             "type": "updated_request",
@@ -189,13 +170,10 @@ async def update_request(
             }
         }
         
-        # Broadcast to all relevant users
         await websocket_manager.broadcast_to_users(user_ids, notification)
-        
         return updated_request
+        
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-

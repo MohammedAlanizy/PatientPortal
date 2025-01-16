@@ -1,30 +1,32 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.crud.base import CRUDBase
 from app.models.assignee import Assignee
 from app.schemas.assignee import AssigneeCreate, AssigneeUpdate
+from app.core.config import settings
 
 class CRUDAssignee(CRUDBase[Assignee, AssigneeCreate, AssigneeUpdate]):
-    def get_by_name(self, db: Session, *, full_name: str) -> Optional[Assignee]:
-        return db.query(Assignee).filter(Assignee.full_name == full_name).first()
+    async def get_by_name(self, db: AsyncSession, *, full_name: str) -> Optional[Assignee]:
+        query = select(Assignee).filter(Assignee.full_name == full_name)
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
     
-    def get_active_assignees(
-        self, db: Session, *, skip: int = 0, limit: int = 100
+    async def get_active_assignees(
+        self, db: AsyncSession, *, skip: int = 0, limit: int = 100
     ) -> List[Assignee]:
-        # You can add additional filters here if needed
-        # For example, if you want to add an 'active' status field later
-        return (
-            db.query(Assignee)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        # To double check the limit is not too high, and reset it if it is
+        if limit > settings.MAX_FETCH_LIMIT:
+            limit = settings.MAX_FETCH_LIMIT
+        query = select(Assignee).offset(skip).limit(limit)
+        result = await db.execute(query)
+        return result.scalars().all()
     
-    def create_with_validation(
-        self, db: Session, *, obj_in: AssigneeCreate
+    async def create_with_validation(
+        self, db: AsyncSession, *, obj_in: AssigneeCreate
     ) -> Assignee:
-        # Check if assignee with same name exists
-        existing_assignee = self.get_by_name(db, full_name=obj_in.full_name)
+        existing_assignee = await self.get_by_name(db, full_name=obj_in.full_name)
         if existing_assignee:
             raise ValueError("An assignee with this name already exists")
         
@@ -32,24 +34,27 @@ class CRUDAssignee(CRUDBase[Assignee, AssigneeCreate, AssigneeUpdate]):
             full_name=obj_in.full_name
         )
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
     
-    def get_assignees_by_ids(
-        self, db: Session, *, ids: List[int]
+    async def get_assignees_by_ids(
+        self, db: AsyncSession, *, ids: List[int]
     ) -> List[Assignee]:
-        return db.query(Assignee).filter(Assignee.id.in_(ids)).all()
+        query = select(Assignee).filter(Assignee.id.in_(ids))
+        result = await db.execute(query)
+        return result.scalars().all()
     
-    def search_assignees(
-        self, db: Session, *, query: str, skip: int = 0, limit: int = 100
+    async def search_assignees(
+        self, db: AsyncSession, *, query_str: str, skip: int = 0, limit: int = 100
     ) -> List[Assignee]:
-        return (
-            db.query(Assignee)
-            .filter(Assignee.full_name.ilike(f"%{query}%"))
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        # To double check the limit is not too high, and reset it if it is
+        if limit > settings.MAX_FETCH_LIMIT:
+            limit = settings.MAX_FETCH_LIMIT
+        query = select(Assignee).filter(
+            Assignee.full_name.ilike(f"%{query_str}%")
+        ).offset(skip).limit(limit)
+        result = await db.execute(query)
+        return result.scalars().all()
 
 crud_assignee = CRUDAssignee(Assignee)

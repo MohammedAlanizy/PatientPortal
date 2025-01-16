@@ -1,27 +1,20 @@
-# fly.toml app configuration file generated for patientportal on 2024-12-26T10:42:27Z
+# fly.toml app configuration file generated for patientportal-dev on 2025-01-14T20:53:01-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'patientportal'
+app = 'patientportal-dev'
 primary_region = 'bom'
 
 [build]
 
 [http_service]
   internal_port = 8080
-  force_https = false
-  auto_stop_machines = false
+  auto_stop_machines = 'off'
   auto_start_machines = true
   processes = ['app']
-  
 
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 1024
-
-[mounts]
-source = "sqlite_data"
-destination = "/data"
