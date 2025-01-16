@@ -39,6 +39,7 @@ class RequestStats(BaseModel):
     total: int
     completed: int
     pending: int
+    today: int
 
     class Config:
         from_attributes = True

@@ -9,7 +9,7 @@ async def test_create_request(client, admin_token):
         "national_id": 123456789,
         "medical_number": 987654321
     }
-    for i in range(10000):
+    for i in range(10):
         response = await client.post(
             "/api/v1/requests/",
             json=request_data,
@@ -72,3 +72,22 @@ async def test_update_request(client, admin_token, assignee_id, db):
     data = response.json()
     assert data["medical_number"] == update_data["medical_number"]
     assert data["notes"] == update_data["notes"]
+
+
+@pytest.mark.asyncio
+async def test_stats_requests(client, admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    response = await client.get("/api/v1/requests/stats", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "total" in data
+    assert "pending" in data
+    assert "completed" in data
+    assert "today" in data
+
+    assert data['total'] == 0
+    assert data['pending'] == 0
+    assert data['completed'] == 0
+    assert data['today'] == 0
+

@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
@@ -16,9 +17,23 @@ router = APIRouter()
 @router.get("/stats", response_model=RequestStats)
 async def get_request_stats(
     db: AsyncSession = Depends(get_db),
+    today_date: str = None,
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
-    total_count = await db.scalar(select(func.count(Request.id)))
+    
+    try:
+        today_date = datetime.strptime(today_date, "%Y-%m-%d").date()
+    except:
+        today_date = date.today()
+
+
+    total_count = await db.scalar(
+        select(func.count(Request.id)).filter(
+            func.DATE(Request.created_at) >= date(today_date.year, 1, 1)
+        )
+    )
+
+    # total_count = await db.scalar(select(func.count(Request.id)))
     completed_count = await db.scalar(
         select(func.count(Request.id)).filter(Request.status == Status.COMPLETED)
     )
@@ -26,10 +41,17 @@ async def get_request_stats(
         select(func.count(Request.id)).filter(Request.status == Status.PENDING)
     )
 
+    today_count = await db.scalar(
+        select(func.count(Request.id)).filter(
+            func.DATE(Request.created_at) == today_date
+        )
+    )
+
     return RequestStats(
         total=total_count or 0,
         completed=completed_count or 0,
-        pending=pending_count or 0
+        pending=pending_count or 0,
+        today=today_count or 0
     )
 
 async def get_request_creator(
