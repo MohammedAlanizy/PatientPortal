@@ -5,7 +5,7 @@ from typing import List, Optional
 from app.crud import crud_request
 from app.models.request import Request
 from app.schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse, RequestStats, Status
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from app.api.deps import get_db, get_current_user, get_optional_current_user, require_roles
 from app.models.user import User
 from app.core.roles import Role
@@ -37,39 +37,34 @@ async def get_request_stats(
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
     
-    parsed_date = parse_date_with_timezone(today_date)
-    if not parsed_date:
-        parsed_date = datetime.now(timezone.utc)
+    parsed_date = parse_date_with_timezone(today_date) or datetime.now(timezone.utc)
 
     day_start, day_end = get_date_range(parsed_date)
     year_start = datetime(parsed_date.year, 1, 1, tzinfo=timezone.utc)
 
-    total_count = await db.scalar(
-        select(func.count(Request.id)).filter(
-            Request.created_at >= year_start
-        )
+    counts = await db.execute(
+        select(
+            func.count(Request.id).label("total"),
+            func.sum(
+                case((Request.status == Status.COMPLETED, 1), else_=0)
+            ).label("completed"),
+            func.sum(
+                case((Request.status == Status.PENDING, 1), else_=0)
+            ).label("pending"),
+            func.sum(
+                case((Request.created_at.between(day_start, day_end), 1), else_=0)
+            ).label("today")
+        ).filter(Request.created_at >= year_start)
     )
 
-    completed_count = await db.scalar(
-        select(func.count(Request.id)).filter(Request.status == Status.COMPLETED)
-    )
-    
-    pending_count = await db.scalar(
-        select(func.count(Request.id)).filter(Request.status == Status.PENDING)
-    )
-
-    today_count = await db.scalar(
-        select(func.count(Request.id)).filter(
-            Request.created_at.between(day_start, day_end)
-        )
-    )
-
+    result = counts.first()
     return RequestStats(
-        total=total_count or 0,
-        completed=completed_count or 0,
-        pending=pending_count or 0,
-        today=today_count or 0
+        total=result.total or 0,
+        completed=result.completed or 0,
+        pending=result.pending or 0,
+        today=result.today or 0
     )
+
 
 async def get_request_creator(
     request: RequestCreate,
