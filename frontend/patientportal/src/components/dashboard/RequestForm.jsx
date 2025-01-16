@@ -40,6 +40,7 @@ const RequestForm = ({ isPublic }) => {
     full_name: '',
     national_id: '',
     medical_number: '',
+    notes: ''
   });
   const [isAuthorized, setIsAuthorized] = useState(false);
   const { showNotification } = useNotification();
@@ -93,6 +94,7 @@ const RequestForm = ({ isPublic }) => {
         full_name: formData.full_name,
         national_id: parseInt(formData.national_id),
         medical_number: formData.medical_number ? parseInt(formData.medical_number) : null,
+        notes: formData.notes,
         is_guest: isPublic
       };
       
@@ -101,7 +103,8 @@ const RequestForm = ({ isPublic }) => {
       setFormData({
         full_name: '',
         national_id: '',
-        medical_number: ''
+        medical_number: '',
+        notes: ''
       });
       
       showNotification("Request submitted successfully. / تم تقديم الطلب بنجاح", 'success');
@@ -153,6 +156,18 @@ const RequestForm = ({ isPublic }) => {
               value={formData.medical_number}
               onChange={handleInputChange}
             />
+            {!isPublic && (
+            <FormField 
+            labelEn="Notes"
+            labelAr="ملاحظات"
+            id="notes"
+            icon={FileText}
+            placeholder="ادخل الملاحظات"
+            value={formData.notes}
+            onChange={handleInputChange}
+          />
+            )}
+
             
             <motion.div 
               whileHover={{ scale: isSubmitting ? 1 : 1.02 }} 
