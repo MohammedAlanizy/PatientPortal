@@ -47,8 +47,9 @@ export const requestsApi = {
     createRequest: (data) => api.post('/requests/', filterEmptyValues(data)),
     updateRequest: (id, data) => api.put(`/requests/${id}`, filterEmptyValues(data)),
     getStats: () => {
-      const timestamp = new Date().toISOString(); 
-      return api.get(`/requests/stats?today_date=${encodeURIComponent(timestamp)}`);
+      const now = new Date();
+      const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      return api.get(`/requests/stats?today_date=${encodeURIComponent(localDate)}`);
     },
   };
   
