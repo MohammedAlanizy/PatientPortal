@@ -168,6 +168,34 @@ export const useRequests = create((set, get) => ({
       });
     }
   },
+  deleteRequest: async (id) => {
+    set({ error: null });
+    try {
+      await requestsApi.deleteRequest(id);
+      
+      set(state => {
+        const deletedRequest = state.requests.find(req => req.id === id);
+        const updatedRequests = state.requests.filter(req => req.id !== id);
+        
+        return {
+          requests: updatedRequests,
+          totalRequest: Math.max(0, state.totalRequest - 1),
+          totalPending: deletedRequest?.status === 'pending' 
+            ? Math.max(0, state.totalPending - 1) 
+            : state.totalPending,
+          totalCompleted: deletedRequest?.status === 'completed'
+            ? Math.max(0, state.totalCompleted - 1)
+            : state.totalCompleted,
+          totalToday: Math.max(0, state.totalToday - 1),
+        };
+      });
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.detail || 'Failed to delete request',
+      });
+      throw error;
+    }
+  },
 
   // New method to handle WebSocket updates
   handleWebSocketUpdate: (request, type) => {
@@ -208,6 +236,22 @@ export const useRequests = create((set, get) => ({
               ? Math.max(0, state.totalPending - 1)
               : state.totalPending + 1,
         };
+      }
+      if (type === 'deleted_request' && existingRequest) {
+          const updatedRequests = state.requests.filter(req => req.id !== request.id);
+          const deletedRequest = state.requests.find(req => req.id === request.id);
+          
+          return {
+            requests: updatedRequests,
+            totalRequest: Math.max(0, state.totalRequest - 1),
+            totalPending: deletedRequest?.status === 'pending'
+              ? Math.max(0, state.totalPending - 1)
+              : state.totalPending,
+            totalCompleted: deletedRequest?.status === 'completed'
+              ? Math.max(0, state.totalCompleted - 1)
+              : state.totalCompleted,
+            totalToday: Math.max(0, state.totalToday - 1),
+          };
       }
       
       return state;

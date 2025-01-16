@@ -206,6 +206,10 @@ const LiveRequests = () => {
           case 'updated_request':
             handleUpdatedRequest(message.data);
             break;
+          case 'deleted_request':
+            useRequests.getState().handleWebSocketUpdate(message.data, message.type);
+            showNotification(`Request #${message.data.id} has been deleted`, 'error');
+            break;
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);

@@ -5,7 +5,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Search, Filter, Download, RefreshCcw, User, FileText, Clock, Hash, Clipboard, UserCircle, Calendar } from 'lucide-react';
+import { Search, Filter, Download, RefreshCcw, User, FileText, Clock, Hash, Clipboard, UserCircle, Calendar, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, formatDistanceToNow, formatDistance, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,18 @@ import { useRequests } from '@/hooks/useRequests';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useNotification } from '@/contexts/NotificationContext';
 const DateFilter = ({ onFilterChange, selectedDate, customDateRange }) => {
   const dateFilters = [
     { id: 'all', label: 'All Time' },
@@ -330,7 +341,18 @@ const HistoryView = () => {
 
 const RequestCard = ({ request }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { deleteRequest } = useRequests();
+  const { showNotification } = useNotification();
+  const userRole = localStorage.getItem('role');
 
+  const handleDelete = async () => {
+    try {
+      await deleteRequest(request.id);
+      showNotification('Request deleted successfully', 'success');
+    } catch (error) {
+      showNotification('Failed to delete request', 'error');
+    }
+  };
   const statusColors = {
     completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
@@ -417,11 +439,42 @@ const RequestCard = ({ request }) => {
                 </div>
               </div>
             </div>
-            <div>
-              <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${statusColors[request.status]}`}>
-                {request.status}
-              </span>
-            </div>
+            <div className="flex items-center gap-2">
+                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${statusColors[request.status]}`}>
+                  {request.status}
+                </span>
+                
+                {userRole === 'admin' && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Request</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this request? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
           </div>
 
           <AnimatePresence>

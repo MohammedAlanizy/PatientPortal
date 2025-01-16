@@ -148,6 +148,10 @@ const Dashboard = () => {
             useRequests.getState().handleWebSocketUpdate(message.data, message.type);
             showNotification(`Request #${message.data.id} has been updated`, 'info');
             break;
+          case 'deleted_request':
+            useRequests.getState().handleWebSocketUpdate(message.data, message.type);
+            showNotification(`Request #${message.data.id} has been deleted`, 'error');
+            break;
           default:
             console.log('Unknown message type:', message.type);
         }
