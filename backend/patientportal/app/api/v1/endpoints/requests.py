@@ -121,6 +121,37 @@ async def create_request(
     await websocket_manager.broadcast_to_users(user_ids, notification)
     return new_request
 
+@router.delete("/{request_id}", response_model=RequestResponse)
+async def delete_request(
+    request_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles([Role.ADMIN]))
+):
+    request = await crud_request.get(db, id=request_id)
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    deleted_request = await crud_request.remove(db, id=request_id)
+    
+    query = select(User.id).filter(User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
+    result = await db.execute(query)
+    user_ids = [row[0] for row in result.all()]
+    
+    notification = {
+        "type": "deleted_request",
+        "data": {
+            "id": deleted_request.id,
+            "full_name": deleted_request.full_name,
+            "medical_number": deleted_request.medical_number,
+            "national_id": deleted_request.national_id,
+            "status": deleted_request.status,
+            "created_at": deleted_request.created_at.astimezone(timezone.utc).isoformat(),
+            "deleted_by": current_user.id
+        }
+    }
+    
+    await websocket_manager.broadcast_to_users(user_ids, notification)
+    return deleted_request
+
 @router.get("/", response_model=RequestListResponse)
 async def read_requests(
     skip: int = 0,
