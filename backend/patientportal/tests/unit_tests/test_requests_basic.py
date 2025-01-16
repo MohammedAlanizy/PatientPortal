@@ -22,6 +22,109 @@ async def test_create_request(client, admin_token):
     assert data["national_id"] == request_data["national_id"]
     assert data["medical_number"] == request_data["medical_number"]
 
+
+
+@pytest.mark.asyncio
+async def test_create_request_with_notes_guest(client,create_guest):
+    # Inserter should not be able to set notes
+    headers = {"Authorization": f"Bearer Guest"}
+    request_data = {
+        "full_name": "Test User",
+        "national_id": 123456789,
+        "medical_number": 987654321,
+        "is_guest": True,
+        "notes": "Test notes"
+    }
+    for i in range(10):
+        response = await client.post(
+            "/api/v1/requests/",
+            json=request_data,
+            headers=headers
+        )
+
+    print(response.json())
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["full_name"] == request_data["full_name"]
+    assert data["national_id"] == request_data["national_id"]
+    assert data["medical_number"] == request_data["medical_number"]
+    assert data["notes"] == None
+
+@pytest.mark.asyncio
+async def test_create_request_with_notes_inserter(client, inserter_token):
+    # Inserter should not be able to set notes
+    headers = {"Authorization": f"Bearer {inserter_token}"}
+    request_data = {
+        "full_name": "Test User",
+        "national_id": 123456789,
+        "medical_number": 987654321,
+        "notes": "Test notes"
+    }
+    for i in range(10):
+        response = await client.post(
+            "/api/v1/requests/",
+            json=request_data,
+            headers=headers
+        )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["full_name"] == request_data["full_name"]
+    assert data["national_id"] == request_data["national_id"]
+    assert data["medical_number"] == request_data["medical_number"]
+    assert data["notes"] == None
+
+
+@pytest.mark.asyncio
+async def test_create_request_with_notes_admin(client, admin_token):
+    # admin should be able to set notes
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    request_data = {
+        "full_name": "Test User",
+        "national_id": 123456789,
+        "medical_number": 987654321,
+        "notes": "Test notes"
+    }
+    for i in range(10):
+        response = await client.post(
+            "/api/v1/requests/",
+            json=request_data,
+            headers=headers
+        )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["full_name"] == request_data["full_name"]
+    assert data["national_id"] == request_data["national_id"]
+    assert data["medical_number"] == request_data["medical_number"]
+    assert data["notes"] == request_data["notes"]
+
+@pytest.mark.asyncio
+async def test_create_request_with_notes_verifier(client, verifier_token):
+    # verifier should be able to set notes
+    headers = {"Authorization": f"Bearer {verifier_token}"}
+    request_data = {
+        "full_name": "Test User",
+        "national_id": 123456789,
+        "medical_number": 987654321,
+        "notes": "Test notes"
+    }
+    for i in range(10):
+        response = await client.post(
+            "/api/v1/requests/",
+            json=request_data,
+            headers=headers
+        )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["full_name"] == request_data["full_name"]
+    assert data["national_id"] == request_data["national_id"]
+    assert data["medical_number"] == request_data["medical_number"]
+    assert data["notes"] == request_data["notes"]
+
+
 @pytest.mark.asyncio
 async def test_get_requests_admin(client, admin_token):
     headers = {"Authorization": f"Bearer {admin_token}"}

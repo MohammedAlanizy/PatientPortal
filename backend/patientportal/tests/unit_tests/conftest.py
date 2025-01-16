@@ -123,6 +123,13 @@ async def assignee_id(client, admin_token):
 
 
 @pytest_asyncio.fixture(scope="function")
+async def create_guest(db):
+    user_in = UserCreate(username="Guest", password="Guest", role=Role.INSERTER, is_guest=True)
+    user = await crud_user.create_guest_user(db, obj_in=user_in)
+    return user.id
+
+
+@pytest_asyncio.fixture(scope="function")
 async def user_id(db):
     # Create and return a user ID (for testing purposes)
     user_in = UserCreate(username="testuser", password="testpass", role=Role.ADMIN)

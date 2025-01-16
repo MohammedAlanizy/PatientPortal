@@ -94,6 +94,10 @@ async def create_request(
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_current_user)
 ):
+    # As requested by the user only make the notes avaliable to the admin and verifier
+    if current_user is None or current_user.role not in [Role.ADMIN, Role.VERIFIER]:
+        request.notes = None
+
     created_by = await get_request_creator(request, db, current_user)
     new_request = await crud_request.create(db, obj_in=request, created_by=created_by)
     

@@ -16,6 +16,7 @@ class RequestBase(BaseModel):
 
 class RequestCreate(RequestBase):
     is_guest: Optional[bool] = False
+    notes: Optional[str] = None
 
 class RequestUpdate(BaseModel):
     medical_number: Optional[int] = None
