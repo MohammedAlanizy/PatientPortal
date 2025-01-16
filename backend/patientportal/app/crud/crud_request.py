@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from app.crud.base import CRUDBase
 from app.models.request import Request
 from app.schemas.request import RequestCreate, RequestUpdate
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from app.core.config import settings
 
 class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
@@ -60,21 +60,43 @@ class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
         filters: Dict[str, Any] = None,
         order_by: Optional[str] = "-updated_at, -created_at",
     ) -> Dict[str, Any]:
-        
 
         # To double check the limit is not too high, and reset it if it is
         if limit > settings.MAX_FETCH_LIMIT:
             limit = settings.MAX_FETCH_LIMIT
+        
         query = select(self.model)
         
         if filters:
             for attr, value in filters.items():
                 if attr == 'start_date':
-                    start_date = datetime.strptime(value, "%Y-%m-%d")
+                    if isinstance(value, str):
+                        start_date = datetime.strptime(value, "%Y-%m-%d")
+                    elif isinstance(value, datetime):
+                        start_date = value
+                    else:
+                        raise ValueError("start_date must be a string or datetime object.")
+                    
+                    # Ensure it's timezone-aware
+                    if start_date.tzinfo is None:
+                        start_date = start_date.replace(tzinfo=timezone.utc)
+
                     query = query.filter(self.model.created_at >= start_date)
+
                 elif attr == 'end_date':
-                    end_date = datetime.strptime(value, "%Y-%m-%d") 
+                    if isinstance(value, str):
+                        end_date = datetime.strptime(value, "%Y-%m-%d")
+                    elif isinstance(value, datetime):
+                        end_date = value
+                    else:
+                        raise ValueError("end_date must be a string or datetime object.")
+                    
+                    # Ensure it's timezone-aware
+                    if end_date.tzinfo is None:
+                        end_date = end_date.replace(tzinfo=timezone.utc)
+
                     query = query.filter(self.model.created_at <= end_date)
+                
                 else:
                     query = query.filter(getattr(self.model, attr) == value)
 
@@ -93,10 +115,11 @@ class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
         # Get paginated results
         result = await db.execute(query.offset(skip).limit(limit))
         items = result.scalars().all()
-        
+
         return {
             "remaining": max(0, total - (skip + limit)),
             "results": items
         }
+
 
 crud_request = CRUDRequest(Request)

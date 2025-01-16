@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
@@ -14,6 +14,22 @@ from app.core.config import settings
 
 router = APIRouter()
 
+def parse_date_with_timezone(date_str: Optional[str]) -> Optional[datetime]:
+    if not date_str:
+        return None
+    try:
+        if 'T' in date_str:
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00')).astimezone(timezone.utc)
+        return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+def get_date_range(date_val: datetime) -> tuple[datetime, datetime]:
+    day_start = datetime.combine(date_val.date(), datetime.min.time()).replace(tzinfo=timezone.utc)
+    day_end = datetime.combine(date_val.date(), datetime.max.time()).replace(tzinfo=timezone.utc)
+    return day_start, day_end
+
+
 @router.get("/stats", response_model=RequestStats)
 async def get_request_stats(
     db: AsyncSession = Depends(get_db),
@@ -21,29 +37,30 @@ async def get_request_stats(
     current_user: User = Depends(require_roles([Role.ADMIN, Role.VERIFIER]))
 ):
     
-    try:
-        today_date = datetime.strptime(today_date, "%Y-%m-%d").date()
-    except:
-        today_date = date.today()
+    parsed_date = parse_date_with_timezone(today_date)
+    if not parsed_date:
+        parsed_date = datetime.now(timezone.utc)
 
+    day_start, day_end = get_date_range(parsed_date)
+    year_start = datetime(parsed_date.year, 1, 1, tzinfo=timezone.utc)
 
     total_count = await db.scalar(
         select(func.count(Request.id)).filter(
-            func.DATE(Request.created_at) >= date(today_date.year, 1, 1)
+            Request.created_at >= year_start
         )
     )
 
-    # total_count = await db.scalar(select(func.count(Request.id)))
     completed_count = await db.scalar(
         select(func.count(Request.id)).filter(Request.status == Status.COMPLETED)
     )
+    
     pending_count = await db.scalar(
         select(func.count(Request.id)).filter(Request.status == Status.PENDING)
     )
 
     today_count = await db.scalar(
         select(func.count(Request.id)).filter(
-            func.DATE(Request.created_at) == today_date
+            Request.created_at.between(day_start, day_end)
         )
     )
 
@@ -98,7 +115,7 @@ async def create_request(
             "medical_number": new_request.medical_number,
             "national_id": new_request.national_id,
             "status": new_request.status,
-            "created_at": new_request.created_at.isoformat()
+            "created_at": new_request.created_at.astimezone(timezone.utc).isoformat()
         }
     }
     
@@ -131,9 +148,15 @@ async def read_requests(
         if status:
             filters['status'] = status
         if start_date:
-            filters['start_date'] = start_date
+            start_datetime = parse_date_with_timezone(start_date)
+            if start_datetime:
+                filters['start_date'] = start_datetime
         if end_date:
-            filters['end_date'] = end_date
+            end_datetime = parse_date_with_timezone(end_date)
+            if end_datetime:
+                # Set to end of day for inclusive filtering
+                _, day_end = get_date_range(end_datetime)
+                filters['end_date'] = day_end
             
         requests = await crud_request.get_multi(
             db, skip=skip, limit=limit, filters=filters, order_by=order_by
@@ -183,11 +206,11 @@ async def update_request(
                 "id": updated_request.id,
                 "full_name": updated_request.full_name,
                 "status": updated_request.status,
-                "updated_at": updated_request.updated_at.isoformat() if updated_request.updated_at else None,
+                "updated_at": updated_request.updated_at.astimezone(timezone.utc).isoformat() if updated_request.updated_at else None,
                 "medical_number": updated_request.medical_number,
                 "notes": updated_request.notes,
                 "assigned_to": updated_request.assigned_to,
-                "created_at": updated_request.created_at.isoformat(),
+                "created_at": updated_request.created_at.astimezone(timezone.utc).isoformat(),
                 "updated_by": current_user.id
             }
         }

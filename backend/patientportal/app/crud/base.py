@@ -5,7 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from app.db.base_class import Base
 from sqlalchemy import func
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from app.core.config import settings
 
 ModelType = TypeVar("ModelType", bound=Base)
@@ -30,20 +30,41 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         filters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         query = select(self.model)
-        
 
         # To double check the limit is not too high, and reset it if it is
         if limit > settings.MAX_FETCH_LIMIT:
             limit = settings.MAX_FETCH_LIMIT
-            
+
         if filters:
             for attr, value in filters.items():
                 if attr == 'start_date':
-                    start_date = datetime.strptime(value, "%Y-%m-%d")
+                    if isinstance(value, str):
+                        start_date = datetime.strptime(value, "%Y-%m-%d")
+                    elif isinstance(value, datetime):
+                        start_date = value
+                    else:
+                        raise ValueError("start_date must be a string or datetime object.")
+
+                    # Ensure it's timezone-aware
+                    if start_date.tzinfo is None:
+                        start_date = start_date.replace(tzinfo=timezone.utc)
+
                     query = query.filter(self.model.created_at >= start_date)
+
                 elif attr == 'end_date':
-                    end_date = datetime.strptime(value, "%Y-%m-%d") 
+                    if isinstance(value, str):
+                        end_date = datetime.strptime(value, "%Y-%m-%d")
+                    elif isinstance(value, datetime):
+                        end_date = value
+                    else:
+                        raise ValueError("end_date must be a string or datetime object.")
+                    
+                    # Ensure it's timezone-aware
+                    if end_date.tzinfo is None:
+                        end_date = end_date.replace(tzinfo=timezone.utc)
+
                     query = query.filter(self.model.created_at <= end_date)
+
                 else:
                     query = query.filter(getattr(self.model, attr) == value)
 
@@ -60,6 +81,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             "remaining": max(0, total - (skip + limit)),
             "results": items
         }
+
 
     async def create(self, db: AsyncSession, *, obj_in: CreateSchemaType) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)

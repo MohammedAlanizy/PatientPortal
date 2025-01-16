@@ -27,16 +27,16 @@ async def test_request_complex_filtering(client, admin_token, db):
     assert all(r["status"] == Status.PENDING for r in data["results"])
     
     # Test filtering by date range
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now().isoformat()
     response = await client.get(
         f"/api/v1/requests/?start_date={today}&end_date={today}",
         headers=headers
     )
     assert response.status_code == 200
     
-    # Test invalid date format
+    # Test invalid date format (which should be handled in the backend!)
     response = await client.get(
         "/api/v1/requests/?start_date=invalid-date",
         headers=headers
     )
-    assert response.status_code == 500
+    assert response.status_code == 200
