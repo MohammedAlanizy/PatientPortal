@@ -20,6 +20,7 @@ export const useRequests = create((set, get) => ({
   totalRequest: 0,
   totalPending: 0,
   totalCompleted: 0,
+  totalToday: 0,
   remaining: 0,
 
   fetchRequests: async (params = { skip: 0 }, isBackgroundRefresh = false) => {
@@ -91,6 +92,7 @@ export const useRequests = create((set, get) => ({
       set(state => ({
         totalRequest: state.totalRequest + 1,
         totalPending: state.totalPending + 1,
+        totalToday: state.totalToday + 1,
         isLoading: false
       }));
       
@@ -152,6 +154,7 @@ export const useRequests = create((set, get) => ({
         totalRequest: response.data.total, 
         totalPending: response.data.pending,
         totalCompleted: response.data.completed, 
+        totalToday: response.data.today,
         isLoading: false 
       });
     } catch (error) {
@@ -160,6 +163,7 @@ export const useRequests = create((set, get) => ({
         totalRequest: 0, 
         totalPending: 0, 
         totalCompleted: 0, 
+        totalToday: 0,
         isLoading: false 
       });
     }
@@ -177,7 +181,8 @@ export const useRequests = create((set, get) => ({
         return {
           requests: [processedRequest, ...currentRequests],
           totalRequest: state.totalRequest + 1,
-          totalPending: state.totalPending + 1
+          totalPending: state.totalPending + 1,
+          totalToday: state.totalToday + 1
         };
       }
       

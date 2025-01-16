@@ -46,7 +46,10 @@ export const requestsApi = {
     getRequest: (id) => api.get(`/requests/${id}`),
     createRequest: (data) => api.post('/requests/', filterEmptyValues(data)),
     updateRequest: (id, data) => api.put(`/requests/${id}`, filterEmptyValues(data)),
-    getStats: () => api.get('/requests/stats'),
+    getStats: () => {
+      const timestamp = new Date().toISOString(); 
+      return api.get(`/requests/stats?today_date=${encodeURIComponent(timestamp)}`);
+    },
   };
   
   export const assigneesApi = {

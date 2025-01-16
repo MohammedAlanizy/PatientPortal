@@ -22,6 +22,7 @@ import {
   IdCard,
   Loader,
   MessageSquare,
+  Inbox,
   RefreshCcw,
   Save,
   Search,
@@ -204,6 +205,7 @@ const Dashboard = () => {
     total: useRequests.getState().totalRequest,
     pending: useRequests.getState().totalPending,
     completed: useRequests.getState().totalCompleted,
+    today: useRequests.getState().totalToday,
   }), [requests]);
 
   const assigneeOptions = useMemo(() => 
@@ -290,10 +292,10 @@ const Dashboard = () => {
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
-          title="Total Requests"
+          title="This Year Requests`"
           value={stats.total}
           icon={FileText}
-          description="All time requests"
+          description={`in ${new Date().getFullYear()}`}
         />
         <StatCard
           title="Pending"
@@ -308,6 +310,13 @@ const Dashboard = () => {
           icon={CheckCircle}
           variant="success"
           description="Successfully processed"
+          className="sm:col-span-2 lg:col-span-1"
+        />
+          <StatCard
+          title="Today"
+          value={stats.today}
+          icon={Inbox}
+          description="Today's requests"
           className="sm:col-span-2 lg:col-span-1"
         />
       </div>
