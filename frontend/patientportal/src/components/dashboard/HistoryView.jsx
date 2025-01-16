@@ -82,8 +82,8 @@ const HistoryView = () => {
   const getDateRange = (period) => {
     if (period === 'custom' && customDateRange.from && customDateRange.to) {
       return {
-        start: format(customDateRange.from, 'yyyy-MM-dd'),
-        end: format(customDateRange.to, 'yyyy-MM-dd')
+        start: format(customDateRange.from,  "yyyy-MM-dd'T'00:00:00"),
+        end: format(customDateRange.to, "yyyy-MM-dd'T'23:59:59")
       };
     }
     
@@ -91,16 +91,16 @@ const HistoryView = () => {
     const ranges = {
 
       today: {
-        start: format(startOfDay(now), 'yyyy-MM-dd'),
-        end: format(endOfDay(now), 'yyyy-MM-dd')
+        start: format(startOfDay(now), "yyyy-MM-dd'T'00:00:00"),
+        end: format(endOfDay(now), "yyyy-MM-dd'T'23:59:59")
       },
       this_week: {
-        start: format(startOfWeek(now), 'yyyy-MM-dd'),
-        end: format(endOfWeek(now), 'yyyy-MM-dd')
+        start: format(startOfWeek(now),  "yyyy-MM-dd'T'00:00:00"),
+        end: format(endOfWeek(now), "yyyy-MM-dd'T'23:59:59")
       },
       this_month: {
-        start: format(startOfMonth(now), 'yyyy-MM-dd'),
-        end: format(endOfMonth(now), 'yyyy-MM-dd')
+        start: format(startOfMonth(now),  "yyyy-MM-dd'T'00:00:00"),
+        end: format(endOfMonth(now), "yyyy-MM-dd'T'23:59:59")
       }
     };
     return ranges[period] || null;
@@ -114,8 +114,8 @@ const HistoryView = () => {
     if (type === 'custom' && range) {
       setCustomDateRange(range);
       dateRange = {
-        start: format(range.from, 'yyyy-MM-dd'),
-        end: format(range.to, 'yyyy-MM-dd'),
+        start: format(range.from,  "yyyy-MM-dd'T'00:00:00"),
+        end: format(range.to, "yyyy-MM-dd'T'23:59:59"),
       };
     } else {
       dateRange = getDateRange(type);
@@ -146,8 +146,8 @@ const HistoryView = () => {
     const dateRange = selectedDate === 'custom'
       ? customDateRange.from && customDateRange.to
         ? {
-            start: format(customDateRange.from, 'yyyy-MM-dd'),
-            end: format(customDateRange.to, 'yyyy-MM-dd'),
+            start: format(customDateRange.from,  "yyyy-MM-dd'T'00:00:00"),
+            end: format(customDateRange.to, "yyyy-MM-dd'T'23:59:59"),
           }
         : null
       : getDateRange(selectedDate);

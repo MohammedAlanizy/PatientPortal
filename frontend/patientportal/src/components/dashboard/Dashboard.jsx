@@ -14,15 +14,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
   BarChart3,
-  CheckCircle,
   ChevronDown,
   Clock,
-  FileText,
   Folder,
   IdCard,
   Loader,
   MessageSquare,
-  Inbox,
   RefreshCcw,
   Save,
   Search,
@@ -31,6 +28,7 @@ import {
   WifiOff
 } from 'lucide-react';
 import UserStatsChart from './UserStatsChart';
+import StatsSection from './StatsSection';
 
 const Dashboard = () => {
   // Store state
@@ -289,37 +287,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard
-          title="This Year Requests`"
-          value={stats.total}
-          icon={FileText}
-          description={`in ${new Date().getFullYear()}`}
-        />
-        <StatCard
-          title="Pending"
-          value={stats.pending}
-          icon={Clock}
-          variant="warning"
-          description="Awaiting processing"
-        />
-        <StatCard
-          title="Completed"
-          value={stats.completed}
-          icon={CheckCircle}
-          variant="success"
-          description="Successfully processed"
-          className="sm:col-span-2 lg:col-span-1"
-        />
-          <StatCard
-          title="Today"
-          value={stats.today}
-          icon={Inbox}
-          description="Today's requests"
-          className="sm:col-span-2 lg:col-span-1"
-        />
-      </div>
+          {/* Stats Overview */}
+          <StatsSection stats={stats} />
 
       <UserStatsChart 
         isOpen={showUserStats}
@@ -653,6 +622,6 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
     </motion.div>
   );
 }
-  
+
 
 export default Dashboard;
