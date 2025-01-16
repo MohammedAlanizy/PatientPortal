@@ -89,6 +89,7 @@ const HistoryView = () => {
     
     const now = new Date();
     const ranges = {
+
       today: {
         start: format(startOfDay(now), 'yyyy-MM-dd'),
         end: format(endOfDay(now), 'yyyy-MM-dd')
@@ -124,6 +125,7 @@ const HistoryView = () => {
     fetchRequests({
       skip: 0,
       search: searchTerm,
+      order_by: '-created_at, -updated_at',
       ...(selectedStatus !== "all" && { status: selectedStatus }),
       ...(dateRange && {
         start_date: dateRange.start,
@@ -153,6 +155,7 @@ const HistoryView = () => {
     fetchRequests({
       skip: 0,
       search: searchTerm,
+      order_by: '-created_at, -updated_at',
       ...(selectedStatus !== "all" && { status: selectedStatus }),
       ...(dateRange && {
         start_date: dateRange.start,
@@ -167,11 +170,12 @@ const HistoryView = () => {
     const dateRange = getDateRange(selectedDate);
     fetchRequests({ 
       skip: newSkip,
+      order_by: '-created_at, -updated_at',
       ...(selectedStatus !== "all" && { status: selectedStatus }),
       ...(dateRange && {
         start_date: dateRange.start,
         end_date: dateRange.end
-      })
+      }),
     });
   };
 
