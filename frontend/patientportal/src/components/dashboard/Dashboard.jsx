@@ -1,22 +1,33 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRequests } from '@/hooks/useRequests';
-import { useAssignees } from '@/hooks/useAssignees';
-import { useWebSocket } from '@/hooks/useWebSocket';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useNotification } from '@/contexts/NotificationContext';
-import UserStatsChart from './UserStatsChart';
-import {
-  Save, Search, FileText, Clock, CheckCircle, AlertCircle,
-  BarChart3, User, MessageSquare, IdCard, Folder, Loader, 
-  Wifi, WifiOff, RefreshCcw
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { useNotification } from '@/contexts/NotificationContext';
+import { useAssignees } from '@/hooks/useAssignees';
+import { useRequests } from '@/hooks/useRequests';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AlertCircle,
+  BarChart3,
+  CheckCircle,
+  ChevronDown,
+  Clock,
+  FileText,
+  Folder,
+  IdCard,
+  Loader,
+  MessageSquare,
+  RefreshCcw,
+  Save, Search,
+  User,
+  Wifi, WifiOff
+} from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import UserStatsChart from './UserStatsChart';
 
 const Dashboard = () => {
   // Store state
@@ -50,7 +61,7 @@ const Dashboard = () => {
     pollingIntervalRef.current = setInterval(async () => {
       try {
         await Promise.all([
-          fetchRequests({ skip: 0,  order_by: '-created_at, -updated_at', status: statusFilter }),
+          fetchRequests({ skip: 0,  order_by: '-created_at, -updated_at', status: statusFilter, limit: 30 }, true),
           fetchStats()
         ]);
         setCountdown(5); // Reset countdown after successful fetch
@@ -115,13 +126,14 @@ const Dashboard = () => {
         
         switch (message.type) {
           case 'new_request':
+            useRequests.getState().handleWebSocketUpdate(message.data, message.type);
+            // Auto-expand new request
+            setExpandedCards(prev => new Set([...prev, message.data.id]));
+            showNotification(`New request from ${message.data.full_name}`, 'info');
+            break;
           case 'updated_request':
             useRequests.getState().handleWebSocketUpdate(message.data, message.type);
-            if (message.type === 'new_request') {
-              showNotification(`New request from ${message.data.full_name}`, 'info');
-            } else {
-              showNotification(`Request #${message.data.id} has been updated`, 'info');
-            }
+            showNotification(`Request #${message.data.id} has been updated`, 'info');
             break;
           default:
             console.log('Unknown message type:', message.type);
@@ -130,7 +142,7 @@ const Dashboard = () => {
         console.error('Error processing WebSocket message:', error);
       }
     };
-
+  
     const cleanup = addMessageListener(handleMessage);
     return () => cleanup();
   }, [addMessageListener, showNotification]);
@@ -149,7 +161,7 @@ const Dashboard = () => {
     try {
       setSkip(0);
       await Promise.all([
-        fetchRequests({ skip: 0, order_by: '-created_at, -updated_at', status: statusFilter }),
+        fetchRequests({ skip: 0, order_by: '-created_at, -updated_at', status: statusFilter, limit: 30 }),
         fetchStats()
       ]);
       showNotification('Data refreshed successfully', 'success');
@@ -166,7 +178,8 @@ const Dashboard = () => {
       await fetchRequests({ 
         skip: newSkip, 
         order_by: '-created_at, -updated_at', 
-        status: statusFilter 
+        status: statusFilter ,
+        limit: 30
       });
     } catch (error) {
       showNotification('Failed to load more requests', 'error');
@@ -176,7 +189,7 @@ const Dashboard = () => {
   const convertUTCToLocal = (utcDate) => {
     if (!utcDate) return null;
     const date = new Date(utcDate);
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return new Date(date.getTime() - date.getTimezoneOffset());
   };
 
   const handleNewRequest = useCallback((newRequest) => {
@@ -249,19 +262,42 @@ const Dashboard = () => {
       showNotification(err.response?.data?.detail || 'Failed to update request', 'error');
     }
   };
-
+  const initializeExpandedCards = useCallback((requests) => {
+    setExpandedCards(new Set(
+      requests.slice(0, 10).map(request => request.id)
+    ));
+  }, []);
+  
+  useEffect(() => {
+    if (requests.length > 0) {
+      initializeExpandedCards(requests);
+    }
+  }, []);
+  const toggleCard = useCallback((requestId) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(requestId)) {
+        newSet.delete(requestId);
+      } else {
+        newSet.add(requestId);
+      }
+      return newSet;
+    });
+  }, []);
+  const [expandedCards, setExpandedCards] = useState(() => new Set());
+  const isRefreshing = useRequests(state => state.isRefreshing);
   return (
-    <div className="space-y-8">
-      {/* Connection Status with Timer and Reconnect */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Monitor and manage your requests</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex-1 sm:flex-none items-center gap-2"
             onClick={handleRefresh}
             disabled={isLoading}
           >
@@ -269,18 +305,18 @@ const Dashboard = () => {
             Refresh
           </Button>
           <Button 
-            variant="outline" 
-            className="flex items-center gap-2"
+            variant="outline"
+            className="flex-1 sm:flex-none items-center gap-2"
             onClick={() => setShowUserStats(!showUserStats)}
           >
             <BarChart3 className="h-4 w-4" />
-            View Analytics
+            <span className="sm:inline">View Analytics</span>
           </Button>
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats Overview - Grid for larger screens, Stack for mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total Requests"
           value={stats.total}
@@ -300,10 +336,9 @@ const Dashboard = () => {
           icon={CheckCircle}
           variant="success"
           description="Successfully processed"
+          className="sm:col-span-2 lg:col-span-1"
         />
       </div>
-
-      {/* Analytics Modal */}
       <UserStatsChart 
         isOpen={showUserStats}
         onClose={() => setShowUserStats(false)}
@@ -311,112 +346,89 @@ const Dashboard = () => {
         fetchUserStats={fetchUserStats}
         useAssignees={useAssignees}
       />
-
       {/* Requests Section */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
-                Requests
-                <Badge variant="secondary" className="ml-2">
-                  {stats.pending} pending
-                </Badge>
-              </CardTitle>
-              
-              {/* Connection Status - New Position */}
-              <div className="flex items-center gap-2">
-                <motion.div
-                  initial={false}
-                  animate={{ 
-                    scale: isConnected ? 1 : [1, 1.1, 1],
-                    transition: { duration: 0.3 }
-                  }}
-                >
-                  <Badge 
-                    variant={isConnected ? "success" : "warning"}
-                    className="flex items-center gap-2"
-                  >
-                    {isConnected ? (
-                      <>
-                        <Wifi className="h-4 w-4" />
-                        Connected
-                      </>
-                    ) : (
-                      <>
-                        <WifiOff className="h-4 w-4" />
-                        Disconnected
-                      </>
-                    )}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-primary" />
+                  Requests
+                  <Badge variant="secondary">
+                    {stats.pending} pending
                   </Badge>
-                </motion.div>
-
-                <AnimatePresence>
-                  {!isConnected && (
-                    <motion.div 
+                </CardTitle>
+                
+                {/* Connection Status */}
+                <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                  <motion.div
+                    initial={false}
+                    animate={{ 
+                      scale: isConnected ? 1 : [1, 1.1, 1],
+                      transition: { duration: 0.3 }
+                    }}
+                  >
+                    <Badge 
+                      variant={isConnected ? "success" : "warning"}
                       className="flex items-center gap-2"
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
                     >
-                      <div className="flex items-center gap-2 bg-muted/50 rounded-md px-2 py-1">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <motion.div
-                          className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center"
-                          animate={{
-                            scale: countdown === 1 ? [1, 1.1, 1] : 1
-                          }}
-                        >
-                          <span className="text-xs font-medium text-primary">{countdown}</span>
-                        </motion.div>
-                      </div>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleReconnect}
-                        className="h-7 px-2 flex items-center gap-1 text-xs"
-                      >
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        >
-                          <RefreshCcw className="h-3 w-3" />
-                        </motion.div>
-                        Reconnect
-                      </Button>
-                    </motion.div>
+                      {isConnected ? (
+                        <>
+                          <Wifi className="h-4 w-4" />
+                          <span className="hidden sm:inline">Connected</span>
+                        </>
+                      ) : (
+                        <>
+                          <WifiOff className="h-4 w-4" />
+                          <span className="hidden sm:inline">Disconnected</span>
+                        </>
+                      )}
+                    </Badge>
+                  </motion.div>
+
+                  {!isConnected && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReconnect}
+                      className="h-7 px-2 flex items-center gap-1 text-xs"
+                    >
+                      <RefreshCcw className="h-3 w-3" />
+                      <span className="hidden sm:inline">Reconnect</span>
+                    </Button>
                   )}
-                </AnimatePresence>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-4 flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search requests..."
-                className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            {/* Search and Filter */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search requests..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardHeader>
+        
         <CardContent>
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
             <AnimatePresence>
@@ -430,12 +442,19 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <>
-{filteredRequests.map((request) => (
+                  {isRefreshing && (
+                    <div className="absolute top-4 right-4">
+                      <Loader className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                  {filteredRequests.map((request, index) => (
                     <RequestCard
                       key={request.id}
                       request={request}
                       onSave={handleSaveRequest}
                       assigneeOptions={assigneeOptions}
+                      isExpanded={expandedCards.has(request.id)}
+                      onToggle={() => toggleCard(request.id)}
                     />
                   ))}
                   {remaining > 0 && (
@@ -444,7 +463,7 @@ const Dashboard = () => {
                         variant="outline"
                         onClick={handleLoadMore}
                         disabled={isLoading}
-                        className="flex items-center gap-2"
+                        className="w-full sm:w-auto flex items-center gap-2"
                       >
                         {isLoading ? (
                           <>
@@ -469,7 +488,7 @@ const Dashboard = () => {
   );
 };
 
-const StatCard = ({ title, value, icon: Icon, variant = 'default', description }) => {
+const StatCard = ({ title, value, icon: Icon, variant = 'default', description, className = "" }) => {
   const variants = {
     default: 'bg-primary/10 text-primary',
     warning: 'bg-yellow-500/10 text-yellow-500',
@@ -477,12 +496,12 @@ const StatCard = ({ title, value, icon: Icon, variant = 'default', description }
   };
 
   return (
-    <Card>
+    <Card className={className}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <h3 className="text-2xl font-bold">{value}</h3>
               <span className="text-sm text-muted-foreground">{description}</span>
             </div>
@@ -496,7 +515,7 @@ const StatCard = ({ title, value, icon: Icon, variant = 'default', description }
   );
 };
 
-const RequestCard = ({ request, onSave, assigneeOptions }) => {
+const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     medical_number: request.medical_number || '',
@@ -522,9 +541,12 @@ const RequestCard = ({ request, onSave, assigneeOptions }) => {
       className="group"
     >
       <Card className="overflow-hidden border bg-card hover:bg-accent/5 transition-colors">
-        <div className="p-6 space-y-6">
-          {/* Header with User Info */}
-          <div className="flex items-start justify-between">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+          {/* Header with User Info - Always visible */}
+          <div 
+            className="flex items-start justify-between cursor-pointer"
+            onClick={onToggle}
+          >
             <div className="flex gap-4">
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <User className="h-6 w-6 text-primary" />
@@ -537,89 +559,109 @@ const RequestCard = ({ request, onSave, assigneeOptions }) => {
                 </div>
               </div>
             </div>
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              {new Date(request.created_at).toLocaleString("en-us")}
-            </div>
-          </div>
-
-          {/* Editable Fields */}
-          <div className="space-y-4 bg-muted/30 rounded-lg p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Folder className="h-4 w-4" />
-                  Medical File Number
-                </label>
-                <Input
-                  value={formData.medical_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, medical_number: e.target.value }))}
-                  placeholder="Enter file number..."
-                  className="bg-background"
-                />
+            <div className="flex items-center gap-2">
+              <div className="text-sm text-muted-foreground hidden sm:flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                {new Date(request.created_at).toLocaleString("en-us")}
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Assigned To
-                </label>
-                <Select
-                  value={formData.assigned_to}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}
-                >
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select assignee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assigneeOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Notes
-              </label>
-              <Input
-                value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Add notes..."
-                className="bg-background"
-              />
+              <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
           </div>
 
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <Loader className="h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+          {/* Mobile timestamp */}
+          <div className="text-sm text-muted-foreground flex sm:hidden items-center gap-2">
+            <Clock className="h-4 w-4" />
+            {new Date(request.created_at).toLocaleString("en-us")}
           </div>
+
+          {/* Expandable Content */}
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="space-y-4 bg-muted/30 rounded-lg p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <Folder className="h-4 w-4" />
+                        Medical File Number
+                      </label>
+                      <Input
+                        value={formData.medical_number}
+                        onChange={(e) => setFormData(prev => ({ ...prev, medical_number: e.target.value }))}
+                        placeholder="Enter file number..."
+                        className="bg-background"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Assigned To
+                      </label>
+                      <Select
+                        value={formData.assigned_to}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select assignee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {assigneeOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Notes
+                    </label>
+                    <Input
+                      value={formData.notes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      placeholder="Add notes..."
+                      className="bg-background"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="w-full sm:w-auto flex items-center gap-2"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </Card>
     </motion.div>
   );
-};
+}
+  
 
 export default Dashboard;

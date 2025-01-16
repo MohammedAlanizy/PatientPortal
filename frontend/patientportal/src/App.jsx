@@ -1,60 +1,89 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
+
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDarkMode } from './hooks/useDarkMode';
-import Navigation from './components/layout/Navigation';
-import SignInPage from './pages/SignInPage';
-import Dashboard from './components/dashboard/Dashboard';
-import RequestForm from './components/dashboard/RequestForm';
-import HistoryView from './components/dashboard/HistoryView';
-import ManageUsers from './components/admin/ManageUsers';
 import { ProtectedRoute } from './components/layout/outlet';
 import { AnimatePresence, motion } from 'framer-motion';
-import CreateRequestPage from '@/pages/CreateRequestPage';
 import { NotificationProvider } from '@/contexts/NotificationContext';
-import FormPage from '@/pages/FormPage';
+
+import { Loader2 } from 'lucide-react';
+
+// Lazy load components
+const Navigation = lazy(() => import('./components/layout/Navigation'));
+const SignInPage = lazy(() => import('./pages/SignInPage'));
+const Dashboard = lazy(() => import('./components/dashboard/Dashboard'));
+const RequestForm = lazy(() => import('./components/dashboard/RequestForm'));
+const HistoryView = lazy(() => import('./components/dashboard/HistoryView'));
+const ManageUsers = lazy(() => import('./components/admin/ManageUsers'));
+const CreateRequestPage = lazy(() => import('@/pages/CreateRequestPage'));
+const FormPage = lazy(() => import('@/pages/FormPage'));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const AppLayout = ({ children, showNav }) => {
   const { isDarkMode } = useDarkMode();
+  
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      {showNav && <Navigation />}
-      <main className="flex-1 pt-16 pl-4 pr-4 md:pl-16 md:pr-16"> 
+      {showNav && (
+        <Suspense fallback={<LoadingFallback />}>
+          <Navigation />
+        </Suspense>
+      )}
+      <main className="flex-1 pt-16 px-4 md:px-8 lg:px-16 max-w-7xl mx-auto w-full"> 
         {children}
       </main>
     </div>
   );
 };
 
+// Memoized page transition variants
+const pageTransitionVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+  transition: { duration: 0.2 }
+};
+
 const AnimatedRoutes = () => {
   const location = useLocation();
-  const showNav = (location.pathname !== '/login' && location.pathname !== '/create-request');
+  const showNav = !['/login', '/create-request'].includes(location.pathname);
   
   return (
     <AppLayout showNav={showNav}>
       <AnimatePresence mode="wait">
         <motion.div
           key={location.pathname}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.2 }}
-          className="h-full"
+          {...pageTransitionVariants}
+          className="h-full w-full"
         >
-          <Routes location={location}>
-            <Route path="/create-request" element={<CreateRequestPage />} />
-            <Route path="/login" element={<SignInPage />} />
-            <Route element={<ProtectedRoute allowedRoles={['inserter', 'verifier', 'admin']} />}>
-              <Route path="/form" element={<FormPage />} />
-            </Route>
-            <Route element={<ProtectedRoute allowedRoles={['verifier', 'admin']} />}>
-              <Route path="/dashboard" element={<Dashboard userRole={localStorage.getItem("role")} />} />
-              <Route path="/history" element={<HistoryView />} />
-            </Route>
-            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-              <Route path="/manage" element={<ManageUsers />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/dashboard" />} />
-          </Routes>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes location={location}>
+              <Route path="/create-request" element={<CreateRequestPage />} />
+              <Route path="/login" element={<SignInPage />} />
+              
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute allowedRoles={['inserter', 'verifier', 'admin']} />}>
+                <Route path="/form" element={<FormPage />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute allowedRoles={['verifier', 'admin']} />}>
+                <Route path="/dashboard" element={<Dashboard userRole={localStorage.getItem("role")} />} />
+                <Route path="/history" element={<HistoryView />} />
+              </Route>
+              
+              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route path="/manage" element={<ManageUsers />} />
+              </Route>
+              
+              <Route path="*" element={<Navigate to="/dashboard" />} />
+            </Routes>
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     </AppLayout>

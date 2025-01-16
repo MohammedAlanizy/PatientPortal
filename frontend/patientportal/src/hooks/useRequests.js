@@ -4,7 +4,7 @@ import { requestsApi } from '../api';
 const convertUTCToLocal = (utcDate) => {
   if (!utcDate) return null;
   const date = new Date(utcDate);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return new Date(date.getTime() - date.getTimezoneOffset());
 };
 
 const processRequest = (request) => ({
@@ -22,18 +22,42 @@ export const useRequests = create((set, get) => ({
   totalCompleted: 0,
   remaining: 0,
 
-  fetchRequests: async (params = { skip: 0 }) => {
-    set({ isLoading: true, error: null });
+  fetchRequests: async (params = { skip: 0 }, isBackgroundRefresh = false) => {
+    // Only set loading if it's not a background refresh
+    set(state => ({ 
+      isLoading: !isBackgroundRefresh, 
+      isRefreshing: isBackgroundRefresh,
+      error: null 
+    }));
+
     try {
       const response = await requestsApi.getRequests(params);
       const processedRequests = response.data.results.map(processRequest);
       
       set(state => {
         if (params.skip === 0) {
+          if (isBackgroundRefresh) {
+            // For background refreshes, merge with existing requests
+            const existingIds = new Set(state.requests.map(req => req.id));
+            const newRequests = processedRequests.filter(req => !existingIds.has(req.id));
+            const updatedExistingRequests = state.requests.map(existing => {
+              const updated = processedRequests.find(req => req.id === existing.id);
+              return updated || existing;
+            });
+            
+            return {
+              requests: [...newRequests, ...updatedExistingRequests],
+              remaining: response.data.remaining,
+              isLoading: false,
+              isRefreshing: false
+            };
+          }
+          
           return {
             requests: processedRequests,
             remaining: response.data.remaining,
-            isLoading: false
+            isLoading: false,
+            isRefreshing: false
           };
         }
         
@@ -44,16 +68,19 @@ export const useRequests = create((set, get) => ({
         return {
           requests: [...state.requests, ...uniqueNewRequests],
           remaining: response.data.remaining,
-          isLoading: false
+          isLoading: false,
+          isRefreshing: false
         };
       });
     } catch (error) {
       set({ 
         error: error.response?.data?.detail || 'Failed to fetch requests', 
-        isLoading: false 
+        isLoading: false,
+        isRefreshing: false
       });
     }
   },
+
 
   createRequest: async (data) => {
     set({ isLoading: true, error: null });

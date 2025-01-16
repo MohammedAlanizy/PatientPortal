@@ -191,7 +191,7 @@ const LiveRequests = () => {
   const convertUTCToLocal = (utcDate) => {
     if (!utcDate) return null;
     const date = new Date(utcDate);
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return new Date(date.getTime() - date.getTimezoneOffset() );
   };
   useEffect(() => {
     const handleMessage = (event) => {
