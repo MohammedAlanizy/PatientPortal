@@ -20,7 +20,7 @@ const StatsSection = ({ stats }) => {
               <div className="flex items-center space-x-1 text-sm">
                 <span className={`flex items-center ${isIncreasing ? 'text-green-500' : 'text-red-500'}`}>
                   {isIncreasing ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                  {Math.abs(percentageChange)}%
+                  {/* {Math.abs(percentageChange)}% */}
                 </span>
               </div>
             </div>

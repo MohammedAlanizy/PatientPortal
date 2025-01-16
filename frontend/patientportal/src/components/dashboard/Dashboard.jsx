@@ -103,6 +103,7 @@ const Dashboard = () => {
     countdownIntervalRef.current = setInterval(() => {
       setCountdown(prev => (prev > 0 ? prev - 1 : 5));
       connect();
+
     }, 1000);
   }, [fetchRequests, fetchStats, statusFilter, connect]);
 
@@ -199,12 +200,17 @@ const Dashboard = () => {
     }
   };
 
+  const totalRequest = useRequests((state) => state.totalRequest);
+  const totalPending = useRequests((state) => state.totalPending);
+  const totalCompleted = useRequests((state) => state.totalCompleted);
+  const totalToday = useRequests((state) => state.totalToday);
+  
   const stats = useMemo(() => ({
-    total: useRequests.getState().totalRequest,
-    pending: useRequests.getState().totalPending,
-    completed: useRequests.getState().totalCompleted,
-    today: useRequests.getState().totalToday,
-  }), [requests]);
+    total: totalRequest,
+    pending: totalPending,
+    completed: totalCompleted,
+    today: totalToday,
+  }), [totalRequest, totalPending, totalCompleted, totalToday]);
 
   const assigneeOptions = useMemo(() => 
     assignees.map(assignee => ({
