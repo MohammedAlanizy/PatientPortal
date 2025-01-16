@@ -1,3 +1,4 @@
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,17 +23,19 @@ import {
   Loader,
   MessageSquare,
   RefreshCcw,
-  Save, Search,
+  Save,
+  Search,
   User,
-  Wifi, WifiOff
+  Wifi,
+  WifiOff
 } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import UserStatsChart from './UserStatsChart';
 
 const Dashboard = () => {
   // Store state
   const requests = useRequests(state => state.requests);
   const isLoading = useRequests(state => state.isLoading);
+  const isRefreshing = useRequests(state => state.isRefreshing);
   const fetchRequests = useRequests(state => state.fetchRequests);
   const fetchStats = useRequests(state => state.fetchStats);
   const fetchUserStats = useAssignees(state => state.fetchStats);
@@ -41,18 +44,46 @@ const Dashboard = () => {
   const { assignees, fetchAssignees } = useAssignees();
   const { showNotification } = useNotification();
   const { isConnected, addMessageListener, connect } = useWebSocket();
-  
+
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('pending');
   const [showUserStats, setShowUserStats] = useState(false);
   const [userStats, setUserStats] = useState([]);
   const [skip, setSkip] = useState(0);
+  const [expandedCards, setExpandedCards] = useState(() => new Set());
+  const [isInitialized, setIsInitialized] = useState(false);
   const [countdown, setCountdown] = useState(5);
 
   // Refs for intervals
-  const pollingIntervalRef = React.useRef(null);
-  const countdownIntervalRef = React.useRef(null);
+  const pollingIntervalRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
+
+  // Initialize data and establish WebSocket connection
+  useEffect(() => {
+    const initializeDashboard = async () => {
+      if (isInitialized) return;
+
+      try {
+        // Connect WebSocket first
+        connect();
+
+        // Fetch initial data in parallel
+        await Promise.all([
+          fetchStats(),
+          fetchAssignees(),
+          fetchRequests({ skip: 0, order_by: '-created_at, -updated_at', status: statusFilter, limit: 30 })
+        ]);
+
+        setIsInitialized(true);
+      } catch (err) {
+        console.error('Dashboard initialization error:', err);
+        showNotification('Failed to initialize dashboard', 'error');
+      }
+    };
+
+    initializeDashboard();
+  }, [connect, fetchStats, fetchAssignees, fetchRequests, statusFilter, isInitialized]);
 
   // Function to start polling with countdown
   const startPolling = useCallback(() => {
@@ -61,21 +92,20 @@ const Dashboard = () => {
     pollingIntervalRef.current = setInterval(async () => {
       try {
         await Promise.all([
-          fetchRequests({ skip: 0,  order_by: '-created_at, -updated_at', status: statusFilter, limit: 30 }, true),
+          fetchRequests({ skip: 0, order_by: '-created_at, -updated_at', status: statusFilter, limit: 30 }, true),
           fetchStats()
         ]);
-        setCountdown(5); // Reset countdown after successful fetch
+        setCountdown(5);
       } catch (error) {
         console.error('Polling error:', error);
       }
     }, 5000);
 
-    // Start countdown
     countdownIntervalRef.current = setInterval(() => {
       setCountdown(prev => (prev > 0 ? prev - 1 : 5));
       connect();
     }, 1000);
-  }, [fetchRequests, fetchStats]);
+  }, [fetchRequests, fetchStats, statusFilter, connect]);
 
   // Function to stop polling
   const stopPolling = useCallback(() => {
@@ -102,22 +132,6 @@ const Dashboard = () => {
     return () => stopPolling();
   }, [isConnected, startPolling, stopPolling]);
 
-  // Initialize data
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await Promise.all([
-          fetchStats(),
-          fetchAssignees()
-        ]);
-      } catch (err) {
-        console.log(err);
-        showNotification('Failed to initialize dashboard', 'error');
-      }
-    };
-    init();
-  }, []);
-
   // WebSocket message handler
   useEffect(() => {
     const handleMessage = (event) => {
@@ -127,7 +141,6 @@ const Dashboard = () => {
         switch (message.type) {
           case 'new_request':
             useRequests.getState().handleWebSocketUpdate(message.data, message.type);
-            // Auto-expand new request
             setExpandedCards(prev => new Set([...prev, message.data.id]));
             showNotification(`New request from ${message.data.full_name}`, 'info');
             break;
@@ -142,7 +155,7 @@ const Dashboard = () => {
         console.error('Error processing WebSocket message:', error);
       }
     };
-  
+
     const cleanup = addMessageListener(handleMessage);
     return () => cleanup();
   }, [addMessageListener, showNotification]);
@@ -151,12 +164,6 @@ const Dashboard = () => {
     connect();
   }, [connect]);
 
-  // Function to refresh data, when status filter changes, which will call handleRefresh
-  useEffect(() => {
-    handleRefresh();
-  }, [statusFilter]);
-
-      
   const handleRefresh = async () => {
     try {
       setSkip(0);
@@ -171,6 +178,13 @@ const Dashboard = () => {
     }
   };
 
+  // Effect to refresh data when status filter changes
+  useEffect(() => {
+    if (isInitialized) {
+      handleRefresh();
+    }
+  }, [statusFilter]);
+
   const handleLoadMore = async () => {
     try {
       const newSkip = requests.length;
@@ -178,55 +192,13 @@ const Dashboard = () => {
       await fetchRequests({ 
         skip: newSkip, 
         order_by: '-created_at, -updated_at', 
-        status: statusFilter ,
+        status: statusFilter,
         limit: 30
       });
     } catch (error) {
       showNotification('Failed to load more requests', 'error');
     }
   };
-
-  const convertUTCToLocal = (utcDate) => {
-    if (!utcDate) return null;
-    const date = new Date(utcDate);
-    return new Date(date.getTime() - date.getTimezoneOffset());
-  };
-
-  const handleNewRequest = useCallback((newRequest) => {
-    const currentRequests = useRequests.getState().requests;
-    newRequest.created_at = convertUTCToLocal(newRequest.created_at);
-    
-    if (!currentRequests.some(req => req.id === newRequest.id)) {
-      useRequests.setState(state => ({
-        requests: [newRequest, ...state.requests],
-        totalRequest: state.totalRequest + 1,
-        totalPending: state.totalPending + 1
-      }));
-      showNotification(`New request from ${newRequest.full_name}`, 'info');
-    }
-  }, [showNotification]);
-
-  const handleUpdatedRequest = useCallback((updatedRequest) => {
-    const currentRequests = useRequests.getState().requests;
-    updatedRequest.created_at = convertUTCToLocal(updatedRequest.created_at);
-    
-    useRequests.setState(state => {
-      const newRequests = state.requests.map(req => {
-        if (req.id === updatedRequest.id) {
-          showNotification(`Request #${req.id} has been updated`, 'info');
-          return { ...req, ...updatedRequest };
-        }
-        return req;
-      });
-      
-      return {
-        ...state,
-        requests: statusFilter === 'pending' && updatedRequest.status !== 'pending'
-          ? newRequests.filter(req => req.id !== updatedRequest.id)
-          : newRequests
-      };
-    });
-  }, [statusFilter, showNotification]);
 
   const stats = useMemo(() => ({
     total: useRequests.getState().totalRequest,
@@ -249,7 +221,7 @@ const Dashboard = () => {
       const matchesSearch = 
         request.full_name.toLowerCase().includes(searchTermLower) ||
         String(request.national_id).includes(searchTerm) ||
-        String(request.medical_number || '').includes(searchTerm)
+        String(request.medical_number || '').includes(searchTerm);
       return matchesStatus && matchesSearch;
     });
   }, [requests, searchTerm, statusFilter]);
@@ -257,22 +229,23 @@ const Dashboard = () => {
   const handleSaveRequest = async (requestId, updates) => {
     try {
       await updateRequest(requestId, updates);
-      // showNotification('Request updated successfully', 'success');
     } catch (err) {
       showNotification(err.response?.data?.detail || 'Failed to update request', 'error');
     }
   };
   const initializeExpandedCards = useCallback((requests) => {
-    setExpandedCards(new Set(
-      requests.slice(0, 10).map(request => request.id)
-    ));
+    if (requests.length > 0) {
+      setExpandedCards(new Set(
+        requests.slice(0, 10).map(request => request.id)
+      ));
+    }
   }, []);
   
   useEffect(() => {
-    if (requests.length > 0) {
+    if (requests.length > 0 && expandedCards.size === 0) {
       initializeExpandedCards(requests);
     }
-  }, []);
+  }, [requests, initializeExpandedCards, expandedCards]);
   const toggleCard = useCallback((requestId) => {
     setExpandedCards(prev => {
       const newSet = new Set(prev);
@@ -284,8 +257,7 @@ const Dashboard = () => {
       return newSet;
     });
   }, []);
-  const [expandedCards, setExpandedCards] = useState(() => new Set());
-  const isRefreshing = useRequests(state => state.isRefreshing);
+
   return (
     <div className="space-y-4 sm:space-y-8">
       {/* Header Section */}
@@ -315,7 +287,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Overview - Grid for larger screens, Stack for mobile */}
+      {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total Requests"
@@ -339,6 +311,7 @@ const Dashboard = () => {
           className="sm:col-span-2 lg:col-span-1"
         />
       </div>
+
       <UserStatsChart 
         isOpen={showUserStats}
         onClose={() => setShowUserStats(false)}
@@ -346,6 +319,7 @@ const Dashboard = () => {
         fetchUserStats={fetchUserStats}
         useAssignees={useAssignees}
       />
+
       {/* Requests Section */}
       <Card>
         <CardHeader>
@@ -436,7 +410,7 @@ const Dashboard = () => {
                 <div className="flex justify-center p-8">
                   <Loader className="h-8 w-8 animate-spin" />
                 </div>
-              ) : filteredRequests.length === 0 ? (
+              ) : filteredRequests.length === 0 && remaining === 0 ? (
                 <div className="text-center p-8 text-muted-foreground">
                   No requests found
                 </div>
@@ -514,7 +488,6 @@ const StatCard = ({ title, value, icon: Icon, variant = 'default', description, 
     </Card>
   );
 };
-
 const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -527,6 +500,9 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
     setIsSaving(true);
     try {
       await onSave(request.id, formData);
+      setTimeout(() => {
+        onToggle();
+      }, 300); 
     } finally {
       setIsSaving(false);
     }
@@ -537,7 +513,9 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      layout
+      transition={{ duration: 0.2 }} 
+      layout 
+      layoutId={`request-${request.id}`} 
       className="group"
     >
       <Card className="overflow-hidden border bg-card hover:bg-accent/5 transition-colors">
@@ -575,13 +553,17 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
           </div>
 
           {/* Expandable Content */}
-          <AnimatePresence>
+          <AnimatePresence mode="popLayout">
             {isExpanded && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ 
+                  duration: 0.2,
+                  opacity: { duration: 0.15 },
+                  height: { duration: 0.2 }
+                }}
               >
                 <div className="space-y-4 bg-muted/30 rounded-lg p-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

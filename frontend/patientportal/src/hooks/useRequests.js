@@ -105,7 +105,7 @@ export const useRequests = create((set, get) => ({
   },
 
   updateRequest: async (id, data) => {
-    set({ isLoading: true, error: null });
+    set({  error: null });
     try {
       const response = await requestsApi.updateRequest(id, data);
       const processedRequest = processRequest(response.data);
