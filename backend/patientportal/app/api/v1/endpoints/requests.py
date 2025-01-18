@@ -2,9 +2,10 @@ from datetime import date, datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
-from app.crud import crud_request
+from app.crud import crud_request, crud_todaycounter
 from app.models.request import Request
 from app.schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse, RequestStats, Status
+from app.models.today_counter import TodayCounter
 from sqlalchemy import case, func, select
 from app.api.deps import get_db, get_current_user, get_optional_current_user, require_roles
 from app.models.user import User
@@ -101,6 +102,13 @@ async def create_request(
     created_by = await get_request_creator(request, db, current_user)
     new_request = await crud_request.create(db, obj_in=request, created_by=created_by)
     
+    # This is to update the daily counter 
+    # create model object for the daily counter
+
+    daily_counter = TodayCounter(request_id=new_request.id)
+
+    await crud_todaycounter.create(db, obj_in=daily_counter)
+
     # Get all users with ADMIN or VERIFIER roles to notify them
     query = select(User.id).filter(User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
     result = await db.execute(query)
