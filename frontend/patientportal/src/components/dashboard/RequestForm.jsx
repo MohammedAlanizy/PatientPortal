@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import RequestSuccessDialog from '@/components/dashboard/RequestSuccessDialog';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useRequests } from '@/hooks/useRequests';
 
@@ -45,6 +46,8 @@ const RequestForm = ({ isPublic }) => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const { showNotification } = useNotification();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [requestNumber, setRequestNumber] = useState(null);
   const { createRequest } = useRequests();
 
   useEffect(() => {
@@ -98,7 +101,9 @@ const RequestForm = ({ isPublic }) => {
         is_guest: isPublic
       };
       
-      await createRequest(payload);
+      const response = await createRequest(payload);
+      
+      setRequestNumber(response.number); 
       
       setFormData({
         full_name: '',
@@ -107,7 +112,8 @@ const RequestForm = ({ isPublic }) => {
         notes: ''
       });
       
-      showNotification("Request submitted successfully. / تم تقديم الطلب بنجاح", 'success');
+      setShowSuccessDialog(true);
+      // showNotification("Request submitted successfully. / تم تقديم الطلب بنجاح", 'success');
     } catch (error) {
       console.error('Submission error:', error);
       showNotification(
@@ -227,6 +233,11 @@ const RequestForm = ({ isPublic }) => {
           </motion.div>
         </footer>
       )}
+      <RequestSuccessDialog
+        isOpen={showSuccessDialog}
+        onClose={() => setShowSuccessDialog(false)}
+        requestNumber={requestNumber}
+      />
     </div>
   );
 };
