@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.crud import crud_request, crud_todaycounter
 from app.models.request import Request
-from app.schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse, RequestStats, Status
+from app.schemas.request import RequestCreate, RequestCreatedResponse, RequestUpdate, RequestResponse, RequestListResponse, RequestStats, Status
 from app.models.today_counter import TodayCounter
 from sqlalchemy import case, func, select
 from app.api.deps import get_db, get_current_user, get_optional_current_user, require_roles
@@ -89,7 +89,7 @@ async def get_request_creator(
         )
     return current_user.id
 
-@router.post("/", response_model=RequestResponse)
+@router.post("/", response_model=RequestCreatedResponse)
 async def create_request(
     request: RequestCreate,
     db: AsyncSession = Depends(get_db),
@@ -107,8 +107,8 @@ async def create_request(
 
     daily_counter = TodayCounter(request_id=new_request.id)
 
-    await crud_todaycounter.create(db, obj_in=daily_counter)
-
+    daily_counter = await crud_todaycounter.create(db, obj_in=daily_counter)
+    
     # Get all users with ADMIN or VERIFIER roles to notify them
     query = select(User.id).filter(User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
     result = await db.execute(query)
@@ -128,7 +128,7 @@ async def create_request(
     }
     
     await websocket_manager.broadcast_to_users(user_ids, notification)
-    return new_request
+    return { "number": daily_counter.id, **new_request.__dict__}
 
 @router.delete("/{request_id}", response_model=RequestResponse)
 async def delete_request(

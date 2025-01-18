@@ -7,4 +7,4 @@ class TodayCounter(Base):
     id = Column(Integer, primary_key=True, index=True)
     request_id = Column(Integer, ForeignKey("requests.id"))
 
-    reqeuested = relationship("Request", foreign_keys=[request_id], lazy="joined")
+    request = relationship("Request", back_populates="counters", lazy="joined")

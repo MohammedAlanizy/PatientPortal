@@ -36,6 +36,10 @@ class RequestResponse(RequestBase):
     class Config:
         from_attributes = True
 
+
+class RequestCreatedResponse(RequestResponse):
+    number: int
+
 class RequestStats(BaseModel):
     total: int
     completed: int
