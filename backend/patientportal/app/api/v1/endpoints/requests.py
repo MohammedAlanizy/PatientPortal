@@ -114,6 +114,7 @@ async def create_request(
             "medical_number": new_request.medical_number,
             "national_id": new_request.national_id,
             "status": new_request.status,
+            "notes": new_request.notes,
             "created_at": new_request.created_at.astimezone(timezone.utc).isoformat()
         }
     }
