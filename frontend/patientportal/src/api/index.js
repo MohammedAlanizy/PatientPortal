@@ -68,4 +68,7 @@ export const requestsApi = {
     getUsers: (params) => api.get('/users/', { params: filterEmptyValues(params) }),
     deleteUser: (id) => api.delete(`/users/${id}`),
   };
-  
+
+export const counterApi = {
+    getLastCounter: () => api.get('/counter/last'),
+};
