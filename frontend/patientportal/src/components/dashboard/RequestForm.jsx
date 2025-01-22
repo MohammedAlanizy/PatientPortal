@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import RequestSuccessDialog from '@/components/dashboard/RequestSuccessDialog';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useRequests } from '@/hooks/useRequests';
-
+import Footer from '../layout/footer';
 const FormField = ({ labelEn, labelAr, id, icon: Icon, placeholder, value, onChange, required, maxLength }) => (
   <motion.div 
     whileHover={{ scale: 1.01 }} 
@@ -102,7 +102,7 @@ const RequestForm = ({ isPublic }) => {
       };
       
       const response = await createRequest(payload);
-      
+
       setRequestNumber(response.number); 
       
       setFormData({
@@ -202,36 +202,7 @@ const RequestForm = ({ isPublic }) => {
       </Card>
 
       {!isAuthorized && (
-        <footer className="w-full mt-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col items-center space-y-2 py-4 border-t border-border/40"
-          >
-            <div className="flex items-center justify-center space-x-2">
-              <User className="h-4 w-4 text-muted-foreground/60" />
-              <span className="text-sm text-muted-foreground/60">
-                Developed and designed by
-              </span>
-              <span className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                Karim Yahia Alanizy
-              </span>
-            </div>
-            <motion.div 
-              className="flex items-center justify-center gap-2 text-muted-foreground/60 hover:text-primary transition-colors"
-              whileHover={{ scale: 1.01 }}
-            >
-              <Mail className="h-4 w-4" />
-              <a 
-                href="mailto:kalanizy@hotmail.com"
-                className="text-sm font-medium transition-colors hover:text-primary"
-              >
-                kalanizy@hotmail.com
-              </a>
-            </motion.div>
-          </motion.div>
-        </footer>
+        <Footer/>
       )}
       <RequestSuccessDialog
         isOpen={showSuccessDialog}
