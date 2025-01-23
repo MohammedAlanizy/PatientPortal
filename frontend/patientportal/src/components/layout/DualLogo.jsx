@@ -20,7 +20,7 @@ const DualLogo = ({ className = "", size = "default" }) => {
         transition={{ type: "spring", stiffness: 400, damping: 10 }}
       >
         <img
-          src="/logo.png"
+          src={import.meta.env.VITE_LOGO_1}
           alt="Ministry of Health"
           className={`${sizeClasses[size]} w-auto drop-shadow-xl`}
         />
@@ -31,7 +31,7 @@ const DualLogo = ({ className = "", size = "default" }) => {
         transition={{ type: "spring", stiffness: 400, damping: 10 }}
       >
         <img
-          src="/logo2.png"
+          src={import.meta.env.VITE_LOGO_2}
           alt="Secondary Logo"
           className={`${sizeClasses[size]} w-auto drop-shadow-xl`}
         />
