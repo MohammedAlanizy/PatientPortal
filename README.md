@@ -83,6 +83,8 @@ VITE_PUBLIC_WS_URL=ws://127.0.0.1:8000/api/v1 # This is the WebSocket URL of you
 VITE_PUBLIC_API_URL=http://127.0.0.1:8000/api/v1 # This is the endpoint URL of your backend
 VITE_AUTHOR_NAME=MyName
 VITE_AUTHOR_EMAIL=MyEmail@example.com
+VITE_LOGO_1=https://sample.image/test.png # The first logo on the left
+VITE_LOGO_2=https://sample.image/test.png # The second logo on the right
 ```
 
 ### Backend
