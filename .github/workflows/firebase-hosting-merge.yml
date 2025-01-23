@@ -20,7 +20,9 @@ jobs:
         run: |
           cd frontend/patientportal && \
           echo "VITE_PUBLIC_WS_URL=${{ secrets.VITE_PUBLIC_WS_URL }}" >> .env.production && \
-          echo "VITE_PUBLIC_API_URL=${{ secrets.VITE_PUBLIC_API_URL }}" >> .env.production
+          echo "VITE_PUBLIC_API_URL=${{ secrets.VITE_PUBLIC_API_URL }}" >> .env.production && \
+          echo "VITE_AUTHOR_EMAIL=${{ secrets.VITE_AUTHOR_EMAIL }}" >> .env.production && \
+          echo "VITE_AUTHOR_NAME=${{ secrets.VITE_AUTHOR_NAME }}" >> .env.production
 
       - name: Build the app
         run: |
