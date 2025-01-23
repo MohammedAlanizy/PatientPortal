@@ -5,6 +5,7 @@ import { Sun, Moon } from 'lucide-react';
 import { useDarkMode } from '../hooks/useDarkMode';
 import DualLogo from '@/components/layout/DualLogo';
 import RequestForm from '@/components/dashboard/RequestForm';
+import Footer from '@/components/layout/Footer';
 
 const CreateRequestPage = () => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -105,6 +106,8 @@ const CreateRequestPage = () => {
           className="w-full"
         >
           <RequestForm isPublic={true} />
+
+          <Footer/>
         </motion.div>
       </div>
     </motion.div>

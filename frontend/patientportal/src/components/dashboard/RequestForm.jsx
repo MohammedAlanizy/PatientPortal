@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import RequestSuccessDialog from '@/components/dashboard/RequestSuccessDialog';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useRequests } from '@/hooks/useRequests';
-import Footer from '@/components/layout/Footer';
 const FormField = ({ labelEn, labelAr, id, icon: Icon, placeholder, value, onChange, required, maxLength }) => (
   <motion.div 
     whileHover={{ scale: 1.01 }} 
@@ -200,10 +199,6 @@ const RequestForm = ({ isPublic }) => {
           </form>
         </CardContent>
       </Card>
-
-      {!isAuthorized && (
-        <Footer/>
-      )}
       <RequestSuccessDialog
         isOpen={showSuccessDialog}
         onClose={() => setShowSuccessDialog(false)}
