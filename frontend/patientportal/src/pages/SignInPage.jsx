@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import DualLogo from '@/components/layout/DualLogo';
-import Footer from '../components/layout/footer';
+import Footer from '@/components/layout/footer';
 const roleRedirectMap = {
   admin: '/dashboard',
   verifier: '/dashboard',
