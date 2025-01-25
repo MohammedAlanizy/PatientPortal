@@ -289,7 +289,7 @@ const SequenceCounterPage = () => {
           </Card>
 
           {/* Auto-refresh indicator */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -297,7 +297,7 @@ const SequenceCounterPage = () => {
           >
             <RotateCw className="h-4 w-4 animate-spin" />
             <span>Auto-refreshing every 5 seconds</span>
-          </motion.div>
+          </motion.div> */}
         </motion.div>
       </div>
     </div>
