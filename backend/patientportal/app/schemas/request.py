@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from app.schemas.user import UserResponse
 from app.schemas.assignee import AssigneeResponse
-
+from app.schemas.today_counter import ResponseCounterForRequests
 class Status(str, Enum):
     COMPLETED = "completed"
     PENDING = "pending"
@@ -32,13 +32,9 @@ class RequestResponse(RequestBase):
     updated_at: Optional[datetime]
     notes: Optional[str]
     status: Status
-
+    counter: Optional[ResponseCounterForRequests]
     class Config:
         from_attributes = True
-
-
-class RequestCreatedResponse(RequestResponse):
-    number: int
 
 class RequestStats(BaseModel):
     total: int

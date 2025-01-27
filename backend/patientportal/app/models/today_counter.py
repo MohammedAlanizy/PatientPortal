@@ -5,6 +5,6 @@ class TodayCounter(Base):
     __tablename__ = "today_counter"
 
     id = Column(Integer, primary_key=True, index=True)
-    request_id = Column(Integer, ForeignKey("requests.id"))
+    request_id = Column(Integer,ForeignKey("requests.id"), nullable=False)
 
-    request = relationship("Request", back_populates="counters", lazy="joined")
+    full_request = relationship("Request", back_populates="counter", foreign_keys=[request_id])

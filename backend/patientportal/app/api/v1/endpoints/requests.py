@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.crud import crud_request, crud_todaycounter
 from app.models.request import Request
-from app.schemas.request import RequestCreate, RequestCreatedResponse, RequestUpdate, RequestResponse, RequestListResponse, RequestStats, Status
+from app.schemas.request import RequestCreate, RequestUpdate, RequestResponse, RequestListResponse, RequestStats, Status
+from app.schemas.today_counter import ResponseCounterForRequests
 from app.models.today_counter import TodayCounter
 from sqlalchemy import case, func, select
 from app.api.deps import get_db, get_current_user, get_optional_current_user, require_roles
@@ -89,7 +90,7 @@ async def get_request_creator(
         )
     return current_user.id
 
-@router.post("/", response_model=RequestCreatedResponse)
+@router.post("/", response_model=RequestResponse)
 async def create_request(
     request: RequestCreate,
     db: AsyncSession = Depends(get_db),
@@ -123,12 +124,15 @@ async def create_request(
             "national_id": new_request.national_id,
             "status": new_request.status,
             "notes": new_request.notes,
-            "created_at": new_request.created_at.astimezone(timezone.utc).isoformat()
+            "created_at": new_request.created_at.astimezone(timezone.utc).isoformat(),
+            "counter": ResponseCounterForRequests(id=daily_counter.id)
         }
     }
     
     await websocket_manager.broadcast_to_users(user_ids, notification)
-    return { "number": daily_counter.id, **new_request.__dict__}
+    # We override the counter as it's not updated on the server as we added the counter after the request created 
+    # So, we simply override it,  we don't have to fetch another query to get the updated request !
+    return { **new_request.__dict__, "counter": ResponseCounterForRequests(id=daily_counter.id)}
 
 @router.delete("/{request_id}", response_model=RequestResponse)
 async def delete_request(
@@ -154,7 +158,8 @@ async def delete_request(
             "national_id": deleted_request.national_id,
             "status": deleted_request.status,
             "created_at": deleted_request.created_at.astimezone(timezone.utc).isoformat(),
-            "deleted_by": current_user.id
+            "deleted_by": current_user.id,
+            "counter": deleted_request.counter
         }
     }
     
@@ -250,7 +255,8 @@ async def update_request(
                 "notes": updated_request.notes,
                 "assigned_to": updated_request.assigned_to,
                 "created_at": updated_request.created_at.astimezone(timezone.utc).isoformat(),
-                "updated_by": current_user.id
+                "updated_by": current_user.id,
+                "counter": updated_request.counter
             }
         }
         

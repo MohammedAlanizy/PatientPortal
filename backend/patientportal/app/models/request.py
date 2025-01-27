@@ -19,9 +19,13 @@ class Request(Base):
     creator = relationship("User", back_populates="requests", foreign_keys=[created_by], lazy="joined")
     assignee = relationship("Assignee", back_populates="assigned_requests", foreign_keys=[assigned_to], lazy="joined")
 
-    counters = relationship(
+    
+    counter = relationship(
         "TodayCounter",
-        back_populates="request",
+        back_populates="full_request",
         cascade="all, delete-orphan",
+        foreign_keys="[TodayCounter.request_id]",
+        lazy="joined",
+        uselist=False  
     )
 
