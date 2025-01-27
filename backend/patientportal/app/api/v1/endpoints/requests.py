@@ -125,10 +125,10 @@ async def create_request(
             "status": new_request.status,
             "notes": new_request.notes,
             "created_at": new_request.created_at.astimezone(timezone.utc).isoformat(),
-            "counter": ResponseCounterForRequests(id=daily_counter.id)
+            "counter": ResponseCounterForRequests(id=daily_counter.id).dict(),
         }
     }
-    
+    print(notification)
     await websocket_manager.broadcast_to_users(user_ids, notification)
     # We override the counter as it's not updated on the server as we added the counter after the request created 
     # So, we simply override it,  we don't have to fetch another query to get the updated request !
