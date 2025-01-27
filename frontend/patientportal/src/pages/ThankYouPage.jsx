@@ -57,7 +57,7 @@ const ThankYouPage = () => {
               
               <div className="space-y-2 text-muted-foreground">
                 <p className="text-lg">Your request has been processed successfully.</p>
-                <p className="text-lg">تم معالجة طلبك بنجاح</p>
+                <p className="text-lg">تم معالجة طلبك بنجاح.</p>
               </div>
             </motion.div>
           </CardContent>
