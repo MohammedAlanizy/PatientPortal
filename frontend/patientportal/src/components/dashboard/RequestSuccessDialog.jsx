@@ -15,7 +15,7 @@ const RequestSuccessDialog = ({ isOpen, onClose, requestNumber }) => {
   const navigate = useNavigate();
 
   const handleViewCounter = () => {
-    navigate('/counter', { state: { requestNumber: requestNumber } });
+    navigate('/counter?is_guest=True', { state: { requestNumber: requestNumber } });
   };
 
   return (

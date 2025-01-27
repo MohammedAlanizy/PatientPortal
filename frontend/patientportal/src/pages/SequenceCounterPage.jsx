@@ -164,7 +164,7 @@ const SequenceCounterPage = () => {
     {
       startAudioContext();
       callUser();
-    }else if (userNumber && number == 0) { // it reset it !
+    }else if (userNumber && number == 0) { // It has been reset !
       navigate('/thank-you');
     }else if (!userNumber) {
       playSequence();
