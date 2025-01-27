@@ -12,6 +12,7 @@ from app.api.deps import get_db, get_current_user, get_optional_current_user, re
 from app.models.user import User
 from app.core.roles import Role
 from .websocket_manager import websocket_manager
+from .websocket_counter_manager import counter_websocket_manager
 from app.core.config import settings
 
 router = APIRouter()
@@ -125,10 +126,9 @@ async def create_request(
             "status": new_request.status,
             "notes": new_request.notes,
             "created_at": new_request.created_at.astimezone(timezone.utc).isoformat(),
-            "counter": ResponseCounterForRequests(id=daily_counter.id).dict(),
+            "counter": ResponseCounterForRequests(id=daily_counter.id).model_dump(),
         }
     }
-    print(notification)
     await websocket_manager.broadcast_to_users(user_ids, notification)
     # We override the counter as it's not updated on the server as we added the counter after the request created 
     # So, we simply override it,  we don't have to fetch another query to get the updated request !
@@ -159,7 +159,7 @@ async def delete_request(
             "status": deleted_request.status,
             "created_at": deleted_request.created_at.astimezone(timezone.utc).isoformat(),
             "deleted_by": current_user.id,
-            "counter": deleted_request.counter
+            "counter": ResponseCounterForRequests(id=deleted_request.counter.id).model_dump() if deleted_request.counter and deleted_request.counter.id is not None else None
         }
     }
     
@@ -243,7 +243,7 @@ async def update_request(
         query = select(User.id).filter(User.role.in_([Role.ADMIN, Role.VERIFIER, Role.INSERTER]))
         result = await db.execute(query)
         user_ids = [row[0] for row in result.all()]
-        
+
         notification = {
             "type": "updated_request",
             "data": {
@@ -256,11 +256,20 @@ async def update_request(
                 "assigned_to": updated_request.assigned_to,
                 "created_at": updated_request.created_at.astimezone(timezone.utc).isoformat(),
                 "updated_by": current_user.id,
-                "counter": updated_request.counter
+                "counter": ResponseCounterForRequests(id=updated_request.counter.id).model_dump() if updated_request.counter and updated_request.counter.id is not None else None
             }
         }
-        
+        # Send the last updated users to the active ws
         await websocket_manager.broadcast_to_users(user_ids, notification)
+        # Send it to the counter webscoket 
+        if updated_request.counter and updated_request.counter.id is not None:
+            message = {
+                    "type": "counter_update",
+                    "last_counter": updated_request.counter.id
+            }
+
+            await counter_websocket_manager.broadcast(message)
+        
         return updated_request
         
     except HTTPException as http_exc:
