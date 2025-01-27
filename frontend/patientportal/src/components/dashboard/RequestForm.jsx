@@ -102,7 +102,7 @@ const RequestForm = ({ isPublic }) => {
       
       const response = await createRequest(payload);
 
-      setRequestNumber(response.number); 
+      setRequestNumber(response.counter.id || 'Not Found!!'); 
       
       setFormData({
         full_name: '',

@@ -9,8 +9,15 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const RequestSuccessDialog = ({ isOpen, onClose, requestNumber }) => {
+  const navigate = useNavigate();
+
+  const handleViewCounter = () => {
+    navigate('/counter', { state: { requestNumber: requestNumber } });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -52,16 +59,24 @@ const RequestSuccessDialog = ({ isOpen, onClose, requestNumber }) => {
             </motion.div>
             
             <div className="text-sm text-muted-foreground mt-2">
-            <p>Please save this number until they call you using this number.</p>
-            <p>يرجى حفظ هذا الرقم حتى يتم النداء عليك باستخدامه.</p>
+              <p>Please save this number until they call you using this number.</p>
+              <p>يرجى حفظ هذا الرقم حتى يتم النداء عليك باستخدامه.</p>
             </div>
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex justify-center mt-4">
+        {/* Only modified section - buttons container */}
+        <div className="flex flex-col gap-3 mt-4">
+          <Button 
+            onClick={handleViewCounter} 
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-900 dark:hover:bg-emerald-800 dark:text-white"
+          >
+            View Current Number / متابعة الرقم الحالي
+          </Button>
+          
           <Button 
             onClick={onClose} 
-            className="w-full sm:w-auto px-8"
+            className="w-full"
           >
             Close / إغلاق
           </Button>

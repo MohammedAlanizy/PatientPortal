@@ -64,6 +64,7 @@ const TimeInfo = ({ icon: Icon, label, timestamp }) => (
 
 const RequestCard = ({ request }) => {
   const isPending = request.status === 'pending';
+  const hasTicket = Boolean(request.counter && request.counter.id);
 
   return (
     <motion.div
@@ -80,37 +81,56 @@ const RequestCard = ({ request }) => {
       <Card className="bg-muted/80 dark:bg-muted/40 hover:bg-accent/80 dark:hover:bg-accent/40 transition-all duration-300 border-border/80">
         <CardContent className="p-5">
           <div className="flex items-start gap-5">
-            <motion.div 
-              className="h-12 w-12 rounded-full bg-primary/20 dark:bg-primary/30 flex items-center justify-center flex-shrink-0"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <User className="h-6 w-6 text-primary dark:text-primary-foreground" />
-            </motion.div>
-            
+            <div className="flex flex-col items-center">
+              <motion.div
+                className={`h-16 w-16 ${hasTicket ? 'rounded-lg' : 'rounded-full'} bg-primary/10 dark:bg-primary/20 flex flex-col items-center justify-center`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {hasTicket ? (
+                  <>
+                    <span className="text-xs text-primary/60 font-medium">N.</span>
+                    <span className="text-xl font-bold text-primary">
+                      {String(request.counter.id).padStart(3, '0')}
+                    </span>
+                  </>
+                ) : (
+                  <User className="h-8 w-8 text-primary" />
+                )}
+              </motion.div>
+            </div>
+
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-3 mb-3">
-                <h3 className="font-semibold text-lg truncate text-card-foreground">{request.full_name}</h3>
+                <div className="flex flex-col">
+                  <h3 className="font-semibold text-lg truncate text-card-foreground">{request.full_name}</h3>
+                  <motion.div
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    <span className="truncate">{request.full_name}</span>
+                  </motion.div>
+                </div>
                 <RequestStatusBadge status={request.status} />
               </div>
-              
+
               <div className="space-y-2">
-                <TimeInfo 
-                  icon={Calendar} 
-                  label="Created" 
+                <TimeInfo
+                  icon={Calendar}
+                  label="Created"
                   timestamp={request.created_at}
                 />
-                
                 {!isPending && request.updated_at && (
-                  <TimeInfo 
-                    icon={RefreshCw} 
-                    label="Updated" 
+                  <TimeInfo
+                    icon={RefreshCw}
+                    label="Updated"
                     timestamp={request.updated_at}
                   />
                 )}
-
                 {!isPending && request.assignee && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-center gap-1.5 text-sm text-muted-foreground"
@@ -128,6 +148,8 @@ const RequestCard = ({ request }) => {
     </motion.div>
   );
 };
+
+
 
 const LiveRequests = () => {
   const { isConnected, addMessageListener, connect } = useWebSocket();

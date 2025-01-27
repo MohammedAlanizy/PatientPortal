@@ -2,38 +2,67 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Sun, Moon, RotateCw, Volume2 } from 'lucide-react';
+import { Sun, Moon, RotateCw, Volume2, User, Wifi, WifiOff } from 'lucide-react';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { counterApi } from '@/api';
 import DualLogo from '@/components/layout/DualLogo';
+import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 const SequenceCounterPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const userNumber = location.state?.requestNumber;
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [counter, setCounter] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioContext, setAudioContext] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingIntervalRef = useRef(null);
   const isMounted = useRef(true);
 
-  const startAudioContext = useCallback(() => {
-    if (audioContext) return; // Don't create a new context if it's already created
-    setCounter(null);
+  const { isConnected, addMessageListener } = useWebSocket(true);
+  const startAudioContext = useCallback(async () => {
+    if (audioContext) {
+      // If context exists but is suspended, resume it
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      return;
+    }
+    
+    // Create new context and resume if needed
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     setAudioContext(ctx);
+    
+    // Some browsers require resuming the new context
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
   }, [audioContext]);
 
   useEffect(() => {
-    const handleUserInteraction = () => {
-      startAudioContext();
-      window.removeEventListener('click', handleUserInteraction); // Remove listener after first use
+    const handleUserInteraction = async () => {
+      await startAudioContext();
+      window.removeEventListener('click', handleUserInteraction);
     };
-
-    window.addEventListener('click', handleUserInteraction);
+  
+    if (userNumber) {
+      // If user number exists, start immediately (assumes valid user gesture)
+      handleUserInteraction();
+    } else {
+      // Otherwise wait for click
+      handleUserInteraction();
+      // window.addEventListener('click', handleUserInteraction);
+    }
+  
     return () => {
       window.removeEventListener('click', handleUserInteraction);
     };
-  }, [startAudioContext]);
+  }, [startAudioContext, userNumber]); // Add userNumber to dependencies
 
   // Function to play a "ding" sound
   const playDing = useCallback((time = 0) => {
@@ -62,7 +91,6 @@ const SequenceCounterPage = () => {
     window.speechSynthesis.cancel();
 
     const startTime = audioContext.currentTime;
-    playDing(0);
 
     // Function to create and schedule utterance
     const scheduleUtterance = (text, lang, delay) => {
@@ -112,12 +140,39 @@ const SequenceCounterPage = () => {
       playDing(0.5);
       setIsSpeaking(false);
     };
+    const callUser = async () => {
+      // Play initial ding
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    playSequence();
+      // Arabic announcement
+      await scheduleUtterance(`حان وقت رقمك ، يرجى التوجه الى الاستقبال`, 'ar-SA', 0);
+
+      // Play middle ding
+      playDing(0.5);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // English announcement
+      await scheduleUtterance(`It's your turn, please go to reception`, 'en', 0);
+
+      // Final ding and cleanup
+      playDing(0.5);
+      setIsSpeaking(false);
+
+      navigate('/thank-you');
+    };
+    if (userNumber && userNumber == number)
+    {
+      startAudioContext();
+      callUser();
+    }else if (userNumber && number == 0) { // it reset it !
+      navigate('/thank-you');
+    }else if (!userNumber) {
+      playSequence();
+    }
   }, [audioContext, playDing]);
 
   const fetchCounter = async () => {
-    if (!isMounted.current) return; 
+    if (!isMounted.current) return;
 
     try {
       setIsLoading(true);
@@ -143,15 +198,45 @@ const SequenceCounterPage = () => {
     }
   };
 
+  // Handle WebSocket messages
+  const handleWebSocketMessage = useCallback((event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'counter_update') {
+        const newCounter = data.last_counter;
+        if (newCounter !== counter) {
+          setCounter(newCounter);
+          speakNumber(newCounter);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling WebSocket message:', error);
+    }
+  }, [counter, speakNumber]);
+
+  // Setup WebSocket listener and polling fallback
   useEffect(() => {
-    fetchCounter();
-    const interval = setInterval(fetchCounter, 5000);
+    const cleanup = addMessageListener(handleWebSocketMessage);
+
+    // Start or stop polling based on WebSocket connection status
+    if (!isConnected) {
+      setIsPolling(true);
+      fetchCounter(); // Initial fetch
+      pollingIntervalRef.current = setInterval(fetchCounter, 5000);
+    } else {
+      setIsPolling(false);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    }
 
     return () => {
-      clearInterval(interval);
-      window.speechSynthesis.cancel();
+      cleanup();
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
     };
-  }, [counter]);
+  }, [isConnected, addMessageListener, handleWebSocketMessage]);
 
   // Button variants for animation
   const buttonVariants = {
@@ -170,10 +255,30 @@ const SequenceCounterPage = () => {
     },
     exit: { scale: 0.5, opacity: 0 }
   };
-
+  
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gradient-to-b from-background to-background/80 p-4 md:p-8 relative">
       {/* Dark Mode Toggle */}
+      <motion.div
+        className="fixed top-4 left-4 md:top-6 md:left-6 z-50"
+        initial="initial"
+        animate="animate"
+        whileTap="tap"
+        whileHover="hover"
+        variants={buttonVariants}
+      >
+        <Button
+          variant="outline"
+          size="icon"
+          className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-background/80 backdrop-blur-sm border-2 shadow-lg"
+        >
+          {isConnected ? (
+            <Wifi className="h-5 w-5 md:h-6 md:w-6 text-green-500" />
+          ) : (
+            <WifiOff className="h-5 w-5 md:h-6 md:w-6 text-yellow-500" />
+          )}
+        </Button>
+      </motion.div>
       <motion.div
         className="fixed top-4 right-4 md:top-6 md:right-6 z-50"
         initial="initial"
@@ -185,10 +290,7 @@ const SequenceCounterPage = () => {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => {
-            toggleDarkMode();
-            startAudioContext(); 
-          }}
+          onClick={toggleDarkMode}
           className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-background/80 backdrop-blur-sm border-2 shadow-lg hover:shadow-xl transition-shadow duration-300 hover:border-primary"
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -273,10 +375,43 @@ const SequenceCounterPage = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="relative flex flex-col items-center gap-10"
+                    className="relative flex flex-col items-center gap-12"
                   >
-                    {/* Counter Number */}
-                    <div className="relative">
+                    {/* User's Number (if available) */}
+                    {userNumber && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full"
+                      >
+                        <div className="relative">
+                          <div className="relative flex items-center justify-between p-6 rounded-2xl border border-primary/20">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-primary/10 rounded-full">
+                                <User className="h-6 w-6 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-primary">Your Number</p>
+                                <p className="text-sm text-primary/80">رقمك</p>
+                              </div>
+                            </div>
+                            <div className="relative">
+                              <span className="text-5xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                                {String(userNumber).padStart(3, '0')}
+                              </span>
+                              <div className="absolute -inset-4 bg-primary/5 blur-lg rounded-full -z-10" />
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Current Number */}
+                    <div className="relative text-center">
+                      <div className="text-sm text-muted-foreground mb-2">
+                        <p>Current Number</p>
+                        <p>الرقم الحالي</p>
+                      </div>
                       <span className="text-8xl md:text-9xl font-bold bg-gradient-to-r from-primary/80 to-primary bg-clip-text text-transparent">
                         {String(counter).padStart(3, '0')}
                       </span>
@@ -287,17 +422,6 @@ const SequenceCounterPage = () => {
               </AnimatePresence>
             </CardContent>
           </Card>
-
-          {/* Auto-refresh indicator */}
-          {/* <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="flex items-center gap-2 text-sm text-muted-foreground/80 backdrop-blur-sm px-4 py-2 rounded-full bg-background/20"
-          >
-            <RotateCw className="h-4 w-4 animate-spin" />
-            <span>Auto-refreshing every 5 seconds</span>
-          </motion.div> */}
         </motion.div>
       </div>
     </div>

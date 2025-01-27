@@ -353,6 +353,7 @@ const RequestCard = ({ request }) => {
       showNotification('Failed to delete request', 'error');
     }
   };
+
   const statusColors = {
     completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
@@ -373,7 +374,7 @@ const RequestCard = ({ request }) => {
     
     if (diffInHours < 24) {
       return formatDistanceToNow(date, { addSuffix: true });
-    } else if (diffInHours < 168) { // 7 days
+    } else if (diffInHours < 168) {
       return format(date, 'EEEE h:mm a');
     } else {
       return format(date, 'MMM d, yyyy h:mm a');
@@ -400,46 +401,63 @@ const RequestCard = ({ request }) => {
     );
   };
 
+  const hasTicketNumber = Boolean(request.counter && request.counter.id);
+
   return (
     <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    layout
-  >
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <div
-        className="p-4 sm:p-6 cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex flex-col space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-base sm:text-lg font-semibold">{request.full_name}</h3>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger className="flex items-center gap-1">
-                        <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                        <span>{getFormattedTime(createdAt)}</span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Created: {format(createdAt, 'PPpp')}
-                        {updatedAt && (
-                          <div>Updated: {format(updatedAt, 'PPpp')}</div>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  {getDurationDisplay()}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      layout
+    >
+      <Card className="overflow-hidden hover:shadow-md transition-shadow">
+        <div
+          className="p-4 sm:p-6 cursor-pointer"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className="flex flex-col space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                {hasTicketNumber ? (
+                  <motion.div 
+                    className="relative h-10 w-10 sm:h-12 sm:w-12"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <div className="absolute inset-0 bg-primary/10 rounded-lg flex flex-col items-center justify-center">
+                      <span className="text-[10px] sm:text-xs text-primary/60 font-medium">N.</span>
+                      <span className="text-sm sm:text-lg font-bold text-primary">
+                        {String(request.counter.id).padStart(3, '0')}
+                      </span>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold">{request.full_name}</h3>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1">
+                          <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>{getFormattedTime(createdAt)}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Created: {format(createdAt, 'PPpp')}
+                          {updatedAt && (
+                            <div>Updated: {format(updatedAt, 'PPpp')}</div>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    {getDurationDisplay()}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${statusColors[request.status]}`}>
                   {request.status}
                 </span>
@@ -475,66 +493,68 @@ const RequestCard = ({ request }) => {
                   </AlertDialog>
                 )}
               </div>
-          </div>
+            </div>
 
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="pt-4"
-              >
-                <Separator className="mb-4" />
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <Hash className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">ID:</span>
-                      <span className="text-sm break-all">{request.national_id}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Medical Number:</span>
-                      <span className="text-sm break-all">{request.medical_number || 'Not assigned'}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Assigned To:</span>
-                      <span className="text-sm">{request.assignee?.full_name || 'Not assigned'}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center space-x-2">
-                        <UserCircle className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Created By:</span>
-                        <span className="text-sm">{request.creator?.username || 'Unknown'}</span>
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="pt-4"
+                >
+                  <Separator className="mb-4" />
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <Hash className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">ID:</span>
+                        <span className="text-sm break-all">{request.national_id}</span>
                       </div>
-                      <Badge variant="outline" className="mt-1 sm:mt-0">
-                        {request.creator?.role || 'No role'}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Medical Number:</span>
+                        <span className="text-sm break-all">{request.medical_number || 'Not assigned'}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Assigned To:</span>
+                        <span className="text-sm">{request.assignee?.full_name || 'Not assigned'}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center space-x-2">
+                          <UserCircle className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Created By:</span>
+                          <span className="text-sm">{request.creator?.username || 'Unknown'}</span>
+                        </div>
+                        <Badge variant="outline" className="mt-1 sm:mt-0">
+                          {request.creator?.role || 'No role'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="space-y-2">
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          <Clipboard className="h-4 w-4 text-muted-foreground" />
+                          Notes
+                        </span>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap rounded-lg bg-muted/50 p-4">
+                          {request.notes || 'No notes available'}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium flex items-center gap-2">
-                        <Clipboard className="h-4 w-4 text-muted-foreground" />
-                        Notes
-                      </span>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap rounded-lg bg-muted/50 p-4">
-                        {request.notes || 'No notes available'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-      </div>
-    </Card>
-  </motion.div>
-);
+      </Card>
+    </motion.div>
+  );
 };
+
+
 
 const getDefaultDateFilter = () => ({
 from: null,

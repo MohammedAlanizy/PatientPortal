@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotification } from '@/contexts/NotificationContext';
 
-export const useWebSocket = () => {
+export const useWebSocket = (isCounter = false) => {
   const { token } = useAuth();
   const { showNotification } = useNotification();
   const [isConnected, setIsConnected] = useState(false);
@@ -29,7 +29,7 @@ export const useWebSocket = () => {
 
     try {
       console.log('Attempting to connect WebSocket...');
-      const ws = new WebSocket(`${import.meta.env.VITE_PUBLIC_WS_URL}/ws?token=${token}`);
+      const ws = new WebSocket(`${import.meta.env.VITE_PUBLIC_WS_URL}${isCounter ? `/counter` : `/ws?token=${token}` }`);
 
       ws.onopen = () => {
         console.log('WebSocket Connected Successfully');

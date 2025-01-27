@@ -16,6 +16,7 @@ const RequestForm = lazy(() => import('./components/dashboard/RequestForm'));
 const HistoryView = lazy(() => import('./components/dashboard/HistoryView'));
 const ManageUsers = lazy(() => import('./components/admin/ManageUsers'));
 const CreateRequestPage = lazy(() => import('@/pages/CreateRequestPage'));
+const ThankYouPage = lazy(() => import('@/pages/ThankYouPage'));
 const FormPage = lazy(() => import('@/pages/FormPage'));
 const SequenceCounterPage = lazy(() => import('./pages/SequenceCounterPage'));
 
@@ -53,7 +54,7 @@ const pageTransitionVariants = {
 
 const AnimatedRoutes = () => {
   const location = useLocation();
-  const showNav = !['/login', '/create-request', '/counter'].includes(location.pathname);
+  const showNav = !['/login', '/create-request', '/counter', "/thank-you"].includes(location.pathname);
   
   return (
     <AppLayout showNav={showNav}>
@@ -66,6 +67,7 @@ const AnimatedRoutes = () => {
           <Suspense fallback={<LoadingFallback />}>
             <Routes location={location}>
               <Route path="/counter" element={<SequenceCounterPage />} />
+              <Route path="/thank-you" element={<ThankYouPage />} />
               <Route path="/create-request" element={<CreateRequestPage />} />
               <Route path="/login" element={<SignInPage />} />
               

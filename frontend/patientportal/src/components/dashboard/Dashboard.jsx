@@ -490,33 +490,51 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
       await onSave(request.id, formData);
       setTimeout(() => {
         onToggle();
-      }, 300); 
+      }, 300);
     } finally {
       setIsSaving(false);
     }
   };
+
+  const hasTicketNumber = Boolean(request.counter && request.counter.id);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.2 }} 
-      layout 
-      layoutId={`request-${request.id}`} 
+      transition={{ duration: 0.2 }}
+      layout
+      layoutId={`request-${request.id}`}
       className="group"
     >
       <Card className="overflow-hidden border bg-card hover:bg-accent/5 transition-colors">
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-          {/* Header with User Info - Always visible */}
-          <div 
+          {/* Header with User Info and Ticket Number - Always visible */}
+          <div
             className="flex items-start justify-between cursor-pointer"
             onClick={onToggle}
           >
             <div className="flex gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-6 w-6 text-primary" />
-              </div>
+              {hasTicketNumber ? (
+                <motion.div 
+                  className="relative h-12 w-12"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <div className="absolute inset-0 bg-primary/10 rounded-lg flex flex-col items-center justify-center">
+                    <span className="text-xs text-primary/60 font-medium">N.</span>
+                    <span className="text-lg font-bold text-primary">
+                      {String(request.counter.id).padStart(3, '0')}
+                    </span>
+                  </div>
+                </motion.div>
+              ) : (
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-6 w-6 text-primary" />
+                </div>
+              )}
+              
               <div className="space-y-1">
                 <h3 className="text-lg font-semibold tracking-tight">{request.full_name}</h3>
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -525,12 +543,15 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
                 </div>
               </div>
             </div>
+
             <div className="flex items-center gap-2">
               <div className="text-sm text-muted-foreground hidden sm:flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 {new Date(request.created_at).toLocaleString("en-us")}
               </div>
-              <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+              <ChevronDown 
+                className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+              />
             </div>
           </div>
 
@@ -547,7 +568,7 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ 
+                transition={{
                   duration: 0.2,
                   opacity: { duration: 0.15 },
                   height: { duration: 0.2 }
@@ -567,7 +588,6 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
                         className="bg-background"
                       />
                     </div>
-
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                         <User className="h-4 w-4" />
@@ -631,7 +651,8 @@ const RequestCard = ({ request, onSave, assigneeOptions, isExpanded, onToggle })
       </Card>
     </motion.div>
   );
-}
+};
+
 
 
 export default Dashboard;
