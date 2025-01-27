@@ -23,6 +23,7 @@ const SequenceCounterPage = () => {
   const [isPolling, setIsPolling] = useState(false);
   const pollingIntervalRef = useRef(null);
   const isMounted = useRef(true);
+  const timeoutsRef = useRef([]);
 
   const { isConnected, addMessageListener } = useWebSocket(true);
   const startAudioContext = useCallback(async () => {
@@ -84,92 +85,112 @@ const SequenceCounterPage = () => {
     oscillator.stop(audioContext.currentTime + time + 0.5);
   }, [audioContext]);
 
+  const clearAllTimeouts = useCallback(() => {
+    timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    timeoutsRef.current = [];
+  }, []);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+      clearAllTimeouts();
+    };
+  }, [clearAllTimeouts]);
+
+  const speak = useCallback((text, lang) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    utterance.volume = 1;
+    
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice => {
+      if (lang === 'ar-SA') {
+        return voice.name.includes('Microsoft Naayf');
+      } else if (lang === 'en-US') {
+        return voice.name.includes('Google US');
+      } else {
+        return voice.name.includes('Reed (English (US))');
+      }
+    });
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
   const speakNumber = useCallback((number) => {
     if (!number || !audioContext) return;
 
-    setIsSpeaking(true);
+    // Cancel any ongoing speech and timeouts
     window.speechSynthesis.cancel();
+    clearAllTimeouts();
+    setIsSpeaking(false);
 
-    const startTime = audioContext.currentTime;
+    const playSequence = () => {
+      setIsSpeaking(true);
 
-    // Function to create and schedule utterance
-    const scheduleUtterance = (text, lang, delay) => {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = lang;
-          utterance.volume = 1;
-          // Use Microsoft voices if available
-          const voices = window.speechSynthesis.getVoices();
-          const preferredVoice = voices.find(voice => {
-            if (lang === 'ar-SA') {
-              return voice.name.includes('Microsoft Naayf');
-            } else if (lang === 'en-US') {
-              return voice.name.includes('Google US');
-            } else {
-              return voice.name.includes('Reed (English (US))');
-            }
-          });
+      // Initial ding
+      playDing();
 
-          if (preferredVoice) {
-            utterance.voice = preferredVoice;
-          }
+      // Arabic announcements
+      timeoutsRef.current.push(setTimeout(() => speak(`رقم ${number}`, 'ar-SA'), 500));
+      timeoutsRef.current.push(setTimeout(() => speak(`رقم ${number}`, 'ar-SA'), 2500));
+      timeoutsRef.current.push(setTimeout(() => speak(`رقم ${number}`, 'ar-SA'), 4500));
 
-          utterance.onend = resolve;
-          window.speechSynthesis.speak(utterance);
-        }, delay);
-      });
-    };
+      // Middle ding
+      timeoutsRef.current.push(setTimeout(() => playDing(), 5500));
 
-    // Sequential audio playback
-    const playSequence = async () => {
-      // Play initial ding
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Arabic announcement
-      await scheduleUtterance(`رقم ${number}`, 'ar-SA', 0);
-
-      // Play middle ding
-      playDing(0.5);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // English announcement
-      await scheduleUtterance(`Number ${number}`, 'en', 0);
+      // English announcements
+      timeoutsRef.current.push(setTimeout(() => speak(`Number ${number}`, 'en'), 6500));
+      timeoutsRef.current.push(setTimeout(() => speak(`Number ${number}`, 'en'), 7500));
+      timeoutsRef.current.push(setTimeout(() => speak(`Number ${number}`, 'en'), 9500));
 
       // Final ding and cleanup
-      playDing(0.5);
-      setIsSpeaking(false);
+      timeoutsRef.current.push(setTimeout(() => {
+        playDing();
+        setIsSpeaking(false);
+      }, 10000));
     };
-    const callUser = async () => {
-      // Play initial ding
-      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Arabic announcement
-      await scheduleUtterance(`حان وقت رقمك ، يرجى التوجه الى الاستقبال`, 'ar-SA', 0);
+    const callUser = () => {
+      setIsSpeaking(true);
 
-      // Play middle ding
-      playDing(0.5);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Initial ding
+      playDing();
 
-      // English announcement
-      await scheduleUtterance(`It's your turn, please go to reception`, 'en', 0);
+      // Arabic announcements
+      timeoutsRef.current.push(setTimeout(() => speak(`حَانَ دَوْرُ رَقْمِكَ، يَرْجَى التَّوَجُّهُ إِلَى عِيَادَةِ سَحْبِ الدَّمِ`, 'ar-SA'), 500));
+      timeoutsRef.current.push(setTimeout(() => speak(`عيادة رقم ٢`, 'ar-SA'), 4500));
 
-      // Final ding and cleanup
-      playDing(0.5);
-      setIsSpeaking(false);
+      // Middle ding
+      timeoutsRef.current.push(setTimeout(() => playDing(), 6500));
 
-      navigate('/thank-you');
+      // English announcements
+      timeoutsRef.current.push(setTimeout(() => speak(`It's your turn, Please proceed to the blood draw clinic`, 'en'), 8500));
+      timeoutsRef.current.push(setTimeout(() => speak(`Clinic Number 2`, 'en'), 10000));
+
+      // Final cleanup
+      timeoutsRef.current.push(setTimeout(() => {
+        playDing();
+        setIsSpeaking(false);
+        navigate('/thank-you');
+      }, 13000));
     };
-    if (userNumber && userNumber == number)
-    {
+
+    // Start the appropriate sequence
+    if (userNumber && userNumber == number) {
       startAudioContext();
       callUser();
-    }else if (userNumber && number == 0) { // It has been reset !
+    } else if (userNumber && number == 0) {
       navigate('/thank-you');
-    }else if (!userNumber) {
+    } else if (!userNumber) {
       playSequence();
     }
-  }, [audioContext, playDing]);
+
+  }, [audioContext, playDing, navigate, startAudioContext, userNumber, speak, clearAllTimeouts]);
 
   const fetchCounter = async () => {
     if (!isMounted.current) return;
